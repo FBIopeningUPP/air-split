@@ -34,6 +34,10 @@ body { margin: 0; background: radial-gradient(120% 90% at 40% 30%, var(--sweep-a
 .brand h1 span { color: var(--accent); }
 .spec { font: 11.5px/1.6 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 .mode { font: 11.5px/1.5 var(--mono); color: var(--fg); opacity: .8; max-width: 52ch; }
+.screens { display: grid; gap: 8px; margin-top: 4px; width: 256px; max-width: 100%; }
+.screens figure { margin: 0; display: grid; gap: 4px; }
+.screens figcaption { font: 500 10px var(--mono); text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
+.screens canvas { display: block; width: 100%; height: auto; aspect-ratio: 4 / 1; border-radius: 6px; background: #020304; box-shadow: 0 0 0 1px var(--line), 0 6px 18px rgba(0, 0, 0, 0.18); }
 .rail { position: absolute; top: calc(16px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: 272px; max-height: calc(100% - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 14px; padding: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
@@ -88,6 +92,7 @@ details.more[open] summary::after { content: "–"; }
 .loading.done { opacity: 0; }
 @media (max-width: 760px) {
   .brand { max-width: calc(100% - 32px); left: 16px; }
+  .screens { gap: 6px; }
   .rail { top: auto; bottom: calc(68px + env(safe-area-inset-bottom, 0px)); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); width: auto; max-height: 44%; }
   .typebar { transform: translateX(-50%); max-width: calc(100% - 24px); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
   .typebar p { display: none; }
@@ -101,6 +106,10 @@ details.more[open] summary::after { content: "–"; }
     <h1>Air75 <span>Split</span></h1>
     <div class="spec" id="spec"></div>
     <div class="mode" id="mode"></div>
+    <div class="screens" aria-label="Live view of both OLED screens">
+      <figure id="scrL"><figcaption>Left screen</figcaption></figure>
+      <figure id="scrR"><figcaption>Right screen</figcaption></figure>
+    </div>
   </header>
 
   <aside class="rail" aria-label="Controls">
@@ -188,6 +197,16 @@ details.more[open] summary::after { content: "–"; }
   </div>
 </div>
 
+<script>
+  // If the 3D view cannot start (a script failed to load or threw before the model was built), say so on the page.
+  window.addEventListener('error', function (e) {
+    var el = document.getElementById('loading');
+    if (!el || el.classList.contains('done')) return;
+    var what = e.target && e.target.tagName === 'SCRIPT' ? 'could not load ' + e.target.src : (e.message || 'unknown error');
+    if (e.target && e.target !== window && e.target.tagName !== 'SCRIPT') return;     // fonts and other extras are optional
+    el.textContent = 'The 3D view could not start (' + what + '). Reload the page to try again.';
+  }, true);
+</script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
@@ -370,6 +389,7 @@ details.more[open] summary::after { content: "–"; }
     var tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding;
     tex.anisotropy = renderer.capabilities.getMaxAnisotropy(); tex.minFilter = THREE.LinearMipmapLinearFilter;
     oleds[side] = { c: c, small: small, tex: tex, fb: new Uint8Array(AirOled.FB_BYTES) };
+    c.setAttribute('aria-hidden', 'true'); $('scr' + side).appendChild(c);
     return tex;
   }
   function hexRgb(h) { var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
@@ -726,6 +746,18 @@ details.more[open] summary::after { content: "–"; }
       demoTimer = setTimeout(step, 90 + Math.random() * 110);
     })();
   });
+
+  var userActed = false;
+  ['keydown', 'pointerdown', 'wheel'].forEach(function (ev) { window.addEventListener(ev, function () { userActed = true; }, true); });
+  setTimeout(function () {
+    var word = 'air75 split', i = 0;
+    (function next() {
+      if (userActed || i >= word.length) return;
+      var ch = word[i++], code = ch === ' ' ? 'Space' : /\d/.test(ch) ? 'Digit' + ch : 'Key' + ch.toUpperCase();
+      press(code); setTimeout(function () { release(code); }, 80);
+      setTimeout(next, 170);
+    })();
+  }, 2400);
 
   // ---------- hover names ----------
   var tip = $('tip'), ray = new THREE.Raycaster(), mouse = new THREE.Vector2(), dragging = false;

@@ -233,4 +233,4 @@
   var api = { create: create, W: W, H: H, FB_BYTES: FB_BYTES, CENTRAL: CENTRAL, PERIPHERAL: PERIPHERAL,
     LINK_OPEN: LINK_OPEN, LINK_CONNECTED: LINK_CONNECTED, LINK_LOST: LINK_LOST, LINK_USB: LINK_USB };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.AirOled = api;
-})(this);
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);
