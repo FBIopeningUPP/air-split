@@ -205,8 +205,7 @@ def o_prim(kind, arg, z0, z1):
         return BRepPrimAPI_MakePrism(face, gp_Vec(z1 - z0, 0, 0)).Shape()
     raise ValueError(kind)
 
-def run_occ(ops):
-    res = None
+def run_occ(ops, res=None):
     i = 0
     while i < len(ops):
         op = ops[i][0]
@@ -256,10 +255,57 @@ def make(name, ops, step=True):
         info["step_vol_mm3"] = float(occ_volume(sh))
     return info
 
+def chamfer_top(shape, z, d):
+    """45 degree chamfer of size d on every edge of the flat top face at height z."""
+    from OCP.BRepFilletAPI import BRepFilletAPI_MakeChamfer
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopAbs import TopAbs_FACE, TopAbs_EDGE
+    from OCP.BRepAdaptor import BRepAdaptor_Surface
+    from OCP.GeomAbs import GeomAbs_Plane
+    from OCP.TopoDS import TopoDS
+    mk = BRepFilletAPI_MakeChamfer(shape)
+    n = 0
+    ex = TopExp_Explorer(shape, TopAbs_FACE)
+    while ex.More():
+        f = TopoDS.Face(ex.Current())
+        srf = BRepAdaptor_Surface(f)
+        if srf.GetType() == GeomAbs_Plane:
+            pl = srf.Plane()
+            if abs(abs(pl.Axis().Direction().Z()) - 1) < 1e-9 and abs(pl.Location().Z() - z) < 1e-6:
+                ee = TopExp_Explorer(f, TopAbs_EDGE)
+                while ee.More():
+                    mk.Add(d, TopoDS.Edge(ee.Current())); n += 1
+                    ee.Next()
+        ex.Next()
+    mk.Build()
+    assert mk.IsDone() and n > 0, "chamfer failed"
+    return mk.Shape()
+
+def make_cover(name, h):
+    """Key cover: built in OpenCascade (the chamfer follows the whole outline), meshed for the STL."""
+    import covers as CV
+    from OCP.BRepMesh import BRepMesh_IncrementalMesh
+    from OCP.StlAPI import StlAPI_Writer
+    body, fin = CV.cover_parts(h)
+    sh = chamfer_top(run_occ(body), CV.z_top(), CV.CHAMFER)
+    sh = run_occ(fin, res=sh)
+    write_step(sh, os.path.join(OUT, "step", name + ".step"))
+    BRepMesh_IncrementalMesh(sh, 0.01, False, 0.15, True)
+    tmp = os.path.join(OUT, "stl", name + ".tmp.stl")
+    StlAPI_Writer().Write(sh, tmp)
+    tm = trimesh.load(tmp, process=True)
+    os.remove(tmp)
+    tm.merge_vertices(); tm.fix_normals()
+    tm.export(os.path.join(OUT, "stl", name + ".stl"))
+    MESHES[name] = tm
+    return dict(name=name, watertight=bool(tm.is_watertight), vol_mm3=float(tm.volume),
+                bbox=[round(v, 2) for v in (tm.bounds[1] - tm.bounds[0])],
+                step_valid=bool(BRepCheck_Analyzer(sh).IsValid()))
+
 def print_pose(name, tm):
     """Copy of a part turned the way it should sit on the bed, resting on z = 0, centred on x/y = 0."""
     t = tm.copy()
-    if name.endswith("_shell"):                        # plate face down: the switch plate is the first layer
+    if name.endswith("_shell") or name.endswith("_cover"):   # plate / top face down: it gets the smooth bed finish
         t.apply_transform(trimesh.transformations.rotation_matrix(math.pi, [0, 1, 0]))
     elif name.endswith("_oled_bezel"):                 # window face down: tilt the slope flat, then flip
         th = math.radians(G.OLED_TILT)
@@ -282,6 +328,7 @@ if __name__ == "__main__":
         results.append(make(f"{nm}_shell", G.shell_ops(h)))
         results.append(make(f"{nm}_base", G.base_ops(h)))
         results.append(make(f"{nm}_oled_bezel", G.bezel_ops(h)))
+        results.append(make_cover(f"{nm}_cover", h))
     results.append(make("fit_test_plate", G.fit_test_ops()))
     write_print_ready()
     for r in results:

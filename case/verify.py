@@ -115,6 +115,33 @@ for yy, nm_ in ((hL["bounds"][1] + 0.6, "front"), (hL["bounds"][3] - 0.6, "back"
     xcut = G._global()["xcut"][0 if nm_ == "back" else G.NROWS - 1]
     check(f"seam is a clean hairline at the {nm_} face (groove does not break through)",
           bool(shL.contains(np.array([[xcut - G.SEAM_GAP - 0.3, yy, G.TG_ZC]]))[0]))
+# 6d. snap-on key covers
+import covers as CV
+import manifold3d as _m
+def _man(tm):
+    return _m.Manifold(_m.Mesh(vert_properties=np.asarray(tm.vertices, dtype=np.float32), tri_verts=np.asarray(tm.faces, dtype=np.uint32)))
+for s_, nm in (("L", "left"), ("R", "right")):
+    h = G.half(s_)
+    cv = trimesh.load(OUT + f"{nm}_cover.stl")
+    sh = trimesh.load(OUT + f"{nm}_shell.stl"); bz = trimesh.load(OUT + f"{nm}_oled_bezel.stl")
+    check(f"{s_} cover watertight", cv.is_watertight)
+    ov = (_man(cv) ^ _man(sh)).volume() + (_man(cv) ^ _man(bz)).volume()
+    check(f"{s_} cover clears the case and the OLED bezel ({ov:.4f} mm3 overlap)", ov < 1e-3)
+    T = G.thickness()
+    pts = np.array([[k["X"], k["Y"], T["cap_top"] + 0.05] for k in h["keys"]] + [[k["X"], k["Y"], CV.z_ceiling() - 0.05] for k in h["keys"]])
+    check(f"{s_} cover sits {CV.z_ceiling() - T['cap_top']:.1f} mm above the keycaps (no key is pressed)", not cv.contains(pts).any())
+    ob = h["bounds"]
+    hooks_ok = True
+    for wall, x0, x1 in CV.tabs(h):
+        y = ob[1] + 0.3 if wall == "front" else ob[3] - 0.3
+        p = np.array([[(x0 + x1) / 2, y, 0.05]])
+        hooks_ok &= bool(cv.contains(p)[0]) and not bool(sh.contains(p)[0])
+    check(f"{s_} all {len(CV.tabs(h))} snap hooks reach under the case's bottom edge", hooks_ok)
+    check(f"{s_} cover tabs stay above the desk (lowest point {cv.bounds[0][2]:.2f} mm, feet at -1.0)", cv.bounds[0][2] > -(G.FOOT_T - 0.5))
+    sl = h["comp"]["slide"]
+    check(f"{s_} power switch reachable through the cover's notch",
+          not cv.contains(np.array([[sl["cx"], ob[3] + CV.CLEAR + CV.WALL / 2, 4.0]]))[0])
+
 # 7. printability: every part as it sits in out/stl/print_ready
 import printcheck
 for name, ok, msg in printcheck.run():

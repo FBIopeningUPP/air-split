@@ -27,7 +27,13 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body { margin: 0; background: radial-gradient(120% 90% at 40% 30%, var(--sweep-a), var(--sweep-b)); color: var(--fg); font-family: var(--sans); font-size: 13px; overflow: hidden; }
-.app { position: relative; height: 100vh; height: 100dvh; }
+.app { position: relative; height: 100vh; height: 100dvh; background: radial-gradient(120% 90% at 40% 30%, var(--sweep-a), var(--sweep-b)); color: var(--fg); transition: background .6s; }
+/* Night: a dark studio where the OLEDs are the brightest thing in the room */
+.app.night {
+  --sweep-a: #1a1d24; --sweep-b: #040507; --fg: #e9edf2; --muted: #8b93a0; --panel: rgba(18, 20, 25, 0.78);
+  --line: rgba(255, 255, 255, 0.09); --chip: rgba(255, 255, 255, 0.07); --accent: #7fd6ff; --accent-soft: rgba(127, 214, 255, 0.14);
+  --tip-bg: #e9edf2; --tip-fg: #101216; --shade: rgba(0, 0, 0, 0.6); color-scheme: dark;
+}
 #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
 .brand { position: absolute; top: calc(18px + env(safe-area-inset-top, 0px)); left: max(20px, env(safe-area-inset-left, 0px)); pointer-events: none; display: grid; gap: 6px; max-width: min(460px, calc(100% - 340px)); }
 .brand h1 { margin: 0; font-weight: 700; font-size: clamp(28px, 4.2vw, 48px); line-height: .95; letter-spacing: -0.03em; text-wrap: balance; }
@@ -115,13 +121,15 @@ details.more[open] summary::after { content: "–"; }
   <aside class="rail" aria-label="Controls">
     <div class="group">
       <div class="label">View</div>
-      <div class="seg" id="views">
+      <div class="seg four" id="views">
         <button data-v="asm" aria-pressed="true">Built</button>
         <button data-v="explode" aria-pressed="false">Exploded</button>
         <button data-v="inside" aria-pressed="false">Inside</button>
         <button data-v="wiring" aria-pressed="false">Wiring</button>
         <button data-v="section" aria-pressed="false">Section</button>
         <button data-v="apart" aria-pressed="false">Apart</button>
+        <button data-v="covers" aria-pressed="false">Covers</button>
+        <button data-v="showcase" aria-pressed="false">Showcase</button>
       </div>
       <div class="seg" id="closeups">
         <button data-c="oled" aria-pressed="false">OLED</button>
@@ -135,6 +143,10 @@ details.more[open] summary::after { content: "–"; }
         <button data-cam="iso">Iso</button><button data-cam="top">Top</button><button data-cam="front">Front</button><button data-cam="side">Side</button><button data-cam="under">Under</button>
       </div>
       <button class="tog" id="spin" aria-pressed="false">Turntable</button>
+    </div>
+    <div class="group">
+      <div class="label">Lights</div>
+      <div class="seg two" id="lights"><button data-l="night" aria-pressed="true">Night</button><button data-l="day" aria-pressed="false">Day</button></div>
     </div>
     <div class="group">
       <div class="label">Parts <small>tap to hide</small></div>
@@ -229,7 +241,7 @@ details.more[open] summary::after { content: "–"; }
   var camera = new THREE.PerspectiveCamera(30, 1, 2, 5000);
   var controls = new THREE.OrbitControls(camera, canvas);
   controls.enableDamping = true; controls.dampingFactor = 0.08; controls.autoRotateSpeed = 0.7;
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x8890a0, scene.environment ? 0.35 : 0.8));
+  var hemi = new THREE.HemisphereLight(0xffffff, 0x8890a0, scene.environment ? 0.35 : 0.8); scene.add(hemi);
   var key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(-160, -240, 420); scene.add(key);
   var rim = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(260, 260, 140); scene.add(rim);
   var under = new THREE.DirectionalLight(0xffffff, 0.35); under.position.set(80, 40, -300); scene.add(under);
@@ -241,6 +253,7 @@ details.more[open] summary::after { content: "–"; }
   var shellMat = std(CASES[0][1], 0.72, 0);
   var baseMat = std(0x2b2e33, 0.8, 0);
   var capMat = std(CAPS[0][1], 0.55);
+  var coverMat = std(0x1b1f26, 0.1, 0, { transparent: true, opacity: 0.58, depthWrite: false, envMapIntensity: 1.3 });   // smoke PETG
   var M = {
     nylon: std(0x1d1f23, 0.7), milky: std(0xe9ecee, 0.35, 0, { transparent: true, opacity: 0.9 }), stem: std(0xc8463c, 0.45),
     copper: std(0xd08f55, 0.35, 0.6), steel: std(0xd3d7dc, 0.28, 0.8), gold: std(0xe2b75a, 0.3, 0.8),
@@ -370,7 +383,7 @@ details.more[open] summary::after { content: "–"; }
   // Each screen paints the renderer's 128 x 32 frame at 8 px per pixel: a faint grid of unlit pixels, lit pixels as
   // soft squares, and a glow from a blurred copy, so close-ups look like the module behind its glass.
   var OLED_PX = 8, OLED_COLORS = [['White', '#eaf4ff'], ['Blue', '#62cbff']], oledColor = OLED_COLORS[0][1];
-  var oleds = {}, sims = {}, simStart = 0, oledGrid = null;
+  var oleds = {}, sims = {}, simStart = 0, oledGrid = null, oledGlow = {}, night = false;
   function bootOleds() {
     sims = { R: AirOled.create(D.OLED_ART, AirOled.CENTRAL, 20240611), L: AirOled.create(D.OLED_ART, AirOled.PERIPHERAL, 7) };
     simStart = performance.now();
@@ -401,8 +414,10 @@ details.more[open] summary::after { content: "–"; }
     x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; if ('filter' in x) x.filter = 'none';
     x.drawImage(oledGrid, 0, 0);
     x.fillStyle = oledColor;
+    var lit = 0;
     for (var yy = 0; yy < 32; yy++) for (var xx = 0; xx < 128; xx++) {
       if (!(fb[yy * 16 + (xx >> 3)] & (0x80 >> (xx & 7)))) continue;
+      lit++;
       x.fillRect(xx * S + 1, yy * S + 1, S - 2, S - 2);
       var k = (yy * 128 + xx) * 4; px[k] = rgb[0]; px[k + 1] = rgb[1]; px[k + 2] = rgb[2]; px[k + 3] = 255;
     }
@@ -415,6 +430,7 @@ details.more[open] summary::after { content: "–"; }
     if ('filter' in x) x.filter = 'none';
     x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
     o.tex.needsUpdate = true;
+    var gl = oledGlow[side]; if (gl) { gl.color.set(oledColor); gl.intensity = night ? 0.9 + 5.0 * Math.min(1, lit / 900) : 0; }
   }
   var wpm = 0;
   function oledStatus() {
@@ -445,6 +461,7 @@ details.more[open] summary::after { content: "–"; }
     add(g, mesh(boxZ(O.glass_l - 0.6, O.glass_w - 0.5, O.glass_t), M.glass), gx, sc, nG);
     var scr = new THREE.Mesh(new THREE.PlaneGeometry(22.4, 5.6), new THREE.MeshBasicMaterial({ map: oledScreen(side), toneMapped: false }));
     scr.position.set(gx, sc, -O.lip + 0.01); g.add(scr);
+    var glow = new THREE.PointLight(0xdcefff, 0, 110, 2); glow.position.set(gx, sc, 6); g.add(glow); oledGlow[side] = glow;   // the screen lights the keys around it
     var glassTop = new THREE.Mesh(new THREE.PlaneGeometry(O.glass_l - 0.6, O.glass_w - 0.5), M.glassTop);
     glassTop.position.set(gx, sc, -O.lip + 0.03); glassTop.renderOrder = 2; g.add(glassTop);
     for (var i = 0; i < 4; i++) add(g, mesh(cylZ(0.6, 0.1, 12), M.header), c[0] + dir * (O.pcb_l / 2 - 1.6), sc - 3.81 + 2.54 * i, nP - 0.05);
@@ -486,6 +503,9 @@ details.more[open] summary::after { content: "–"; }
     var shell = new THREE.Mesh(geoSoft(d.shell), shellMat); shell.userData.name = 'Printed case (top), ' + (s === 'L' ? 'left' : 'right') + ' half';
     var bezel = new THREE.Mesh(geoSoft(d.bezel), shellMat); bezel.userData.name = 'OLED bezel, tilted ' + Math.round(d.oled_pose.theta * 180 / Math.PI) + '°, prints window-face-down (pegs into the deck)';
     shell.add(bezel); pickables.push(bezel);
+    var covers = new THREE.Group(), cv = new THREE.Mesh(geoSoft(d.cover), coverMat);
+    cv.userData.name = 'Snap-on key cover, ' + (s === 'L' ? 'left' : 'right') + ' half: smoke PETG, 1 mm above the keycaps, 4 snap tabs';
+    cv.renderOrder = 3; covers.add(cv); pickables.push(cv);
     var base = new THREE.Group(); var bm = new THREE.Mesh(geoSoft(d.base), baseMat); bm.userData.name = 'Printed base'; base.add(bm);
     d.feet.forEach(function (f) { add(base, mesh(cylZ(4.0, D.FOOT_T, 28), M.foot), f[0], f[1], 0.5 - D.FOOT_T); });
     var stems = new THREE.Group();
@@ -545,8 +565,8 @@ details.more[open] summary::after { content: "–"; }
       cyl.rotation.z = Math.PI / 2; cyl.position.set(m[0] + (s === 'L' ? -0.6 : 0.6), m[1], D.MAG.z); cyl.userData.name = 'Magnet 5 × 1 mm N52'; mags.add(cyl); pickables.push(cyl);
     });
     sw = mergeByMaterial(sw); sw.add(stems);
-    g.add(shell, base, sw, caps, elec, wire, mags, screens); scene.add(g);
-    halves[s] = { g: g, shell: shell, base: base, sw: sw, caps: caps, elec: elec, wire: wire, mags: mags, screens: screens };
+    g.add(shell, base, sw, caps, elec, wire, mags, screens, covers); scene.add(g);
+    halves[s] = { g: g, shell: shell, base: base, sw: sw, caps: caps, elec: elec, wire: wire, mags: mags, screens: screens, covers: covers };
   });
   var jb0 = [Math.min(D.L.bounds[0], D.R.bounds[0] + D.R.ox), Math.max(D.L.bounds[2], D.R.bounds[2] + D.R.ox)];
   var shadow = shadowPlane((jb0[1] - jb0[0]) * 1.5, (D.L.bounds[3] - D.L.bounds[1]) * 1.9);
@@ -564,7 +584,7 @@ details.more[open] summary::after { content: "–"; }
     var gap = +ui.gap.value, e = +ui.explode.value;
     halves.R.g.position.set(D.R.ox + gap, 0, 0);
     ['L', 'R'].forEach(function (s) {
-      var h = halves[s]; h.base.position.z = -e; h.sw.position.z = e * 0.35; h.caps.position.z = e * 0.75; h.elec.position.z = -e * 0.45; h.wire.position.z = -e * 0.2; h.screens.position.z = e * 0.15;
+      var h = halves[s]; h.base.position.z = -e; h.sw.position.z = e * 0.35; h.caps.position.z = e * 0.75; h.elec.position.z = -e * 0.45; h.wire.position.z = -e * 0.2; h.screens.position.z = e * 0.15; h.covers.position.z = e > 0 ? e * 0.9 : coverLift;
     });
     $('o-explode').textContent = e + ' mm'; $('o-gap').textContent = gap + ' mm';
     var c = +ui.cut.value;
@@ -574,7 +594,8 @@ details.more[open] summary::after { content: "–"; }
     $('o-xray').textContent = Math.round(xr * 100) + '%';
     shadow.visible = e === 0 && c === 0;
   }
-  function visibility() { ['L', 'R'].forEach(function (s) { PARTS.forEach(function (p) { halves[s][p[0]].visible = vis[p[0]]; }); }); syncChips(); }
+  var coversOn = false, showcaseOn = false, coverLift = 0, coverT0 = 0;
+  function visibility() { ['L', 'R'].forEach(function (s) { PARTS.forEach(function (p) { halves[s][p[0]].visible = vis[p[0]]; }); halves[s].covers.visible = coversOn; }); syncChips(); }
 
   var partsEl = $('parts');
   PARTS.forEach(function (p) {
@@ -599,6 +620,30 @@ details.more[open] summary::after { content: "–"; }
     try { var k = +localStorage.getItem(storeKey); if (k > 0 && k < list.length) el.querySelectorAll('.sw')[k].click(); } catch (e) {}
   }
   swatches($('caseSw'), CASES, shellMat, 'air75-case'); swatches($('capSw'), CAPS, capMat, 'air75-caps');
+
+  // ---------- day / night ----------
+  var LIGHTS = {
+    day: { hemi: [0xffffff, 0x8890a0, scene.environment ? 0.35 : 0.8], key: [0xffffff, 0.9], rim: [0xffffff, 0.35], under: [0xffffff, 0.35], env: 1, exp: 0.92, shadow: 1 },
+    night: { hemi: [0x3a4870, 0x020203, 0.05], key: [0x9fb2ff, 0.12], rim: [0x6a8cff, 0.5], under: [0x000000, 0], env: 0.12, exp: 1.05, shadow: 0.6 }
+  };
+  var envMats = [], appEl = document.querySelector('.app');
+  function setLights(mode) {
+    var L = LIGHTS[mode]; night = mode === 'night';
+    hemi.color.setHex(L.hemi[0]); hemi.groundColor.setHex(L.hemi[1]); hemi.intensity = L.hemi[2];
+    key.color.setHex(L.key[0]); key.intensity = L.key[1]; rim.color.setHex(L.rim[0]); rim.intensity = L.rim[1];
+    under.color.setHex(L.under[0]); under.intensity = L.under[1];
+    if (!envMats.length) scene.traverse(function (o) {
+      [].concat(o.material || []).forEach(function (m) { if (m.envMapIntensity !== undefined && envMats.indexOf(m) < 0) { m.userData.env0 = m.envMapIntensity; envMats.push(m); } });
+    });
+    envMats.forEach(function (m) { m.envMapIntensity = m.userData.env0 * L.env; });
+    renderer.toneMappingExposure = L.exp; shadow.material.opacity = L.shadow;
+    appEl.classList.toggle('night', night);
+    document.querySelectorAll('#lights button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.l === mode)); });
+    paintOled('R'); paintOled('L'); dirty = true;
+    try { localStorage.setItem('air75-lights', mode); } catch (e) {}
+  }
+  document.querySelectorAll('#lights button').forEach(function (b) { b.addEventListener('click', function () { setLights(b.dataset.l); }); });
+  (function () { var m = 'night'; try { var l = localStorage.getItem('air75-lights'); if (l === 'day' || l === 'night') m = l; } catch (e) {} setLights(m); })();
   (function () {
     var el = $('oledSw');
     OLED_COLORS.forEach(function (c, i) {
@@ -657,7 +702,9 @@ details.more[open] summary::after { content: "–"; }
     inside: 'Inside, with the case see-through. Hover any part or wire for its name.',
     wiring: 'Wiring from underneath with the base off: the way you solder it. Hover a wire for its name.',
     section: 'Cross-section through the "4" column. Move "Cut through" to slide the cut.',
-    apart: 'Halves apart: ' + D.L.magnets.length + ' magnet pairs in the staircase seam, tongue and groove above them.'
+    apart: 'Halves apart: ' + D.L.magnets.length + ' magnet pairs in the staircase seam, tongue and groove above them.',
+    covers: 'Snap-on key covers for the bag: smoke PETG, 1 mm above the keycaps so no key is pressed, four snap tabs hook under the case edge. Drag "Explode" to hold them up.',
+    showcase: 'Showcase: night lights, both screens running the firmware\'s own code while it types. Touch anything to take over.'
   };
   function setView(v) {
     ui.explode.value = 0; ui.gap.value = 0; ui.cut.value = 0; ui.xray.value = 0; var cam = 'iso';
@@ -667,10 +714,24 @@ details.more[open] summary::after { content: "–"; }
     if (v === 'wiring') { setVis({ base: false, caps: false, screens: false }); ui.xray.value = 70; cam = 'under'; }
     if (v === 'section') { setVis({}); ui.cut.value = 26; cam = 'side'; }
     if (v === 'apart') { setVis({ caps: false }); ui.gap.value = 60; ui.xray.value = 70; }
+    var wasShow = showcaseOn; coversOn = v === 'covers'; showcaseOn = v === 'showcase';
+    if (v === 'covers') { setVis({}); ui.gap.value = 50; coverT0 = performance.now(); }
+    if (v === 'showcase') { setVis({}); setLights('night'); }
     layout(); modeEl.textContent = MODES[v];
     document.querySelectorAll('#views button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.v === v)); });
     document.querySelectorAll('#closeups button').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
-    setCam(cam);
+    if (showcaseOn) {
+      var sp = viewPose('iso'), c0 = sp[1], d0 = new THREE.Vector3(sp[0][0], sp[0][1], sp[0][2]).sub(c0).multiplyScalar(0.62); d0.z *= 0.55;
+      flyTo([c0.x + d0.x, c0.y + d0.y, c0.z + d0.z], c0);
+      controls.autoRotate = true; controls.autoRotateSpeed = 0.9; spinBtn.setAttribute('aria-pressed', 'true');
+      if (demoBtn.getAttribute('aria-pressed') !== 'true') demoBtn.click();
+    } else {
+      if (wasShow) {
+        controls.autoRotate = false; controls.autoRotateSpeed = 0.7; spinBtn.setAttribute('aria-pressed', 'false');
+        if (demoBtn.getAttribute('aria-pressed') === 'true') demoBtn.click();
+      }
+      setCam(cam);
+    }
   }
   function closeUp(part) {
     ui.explode.value = 0; ui.gap.value = 0; ui.cut.value = 0;
@@ -800,7 +861,7 @@ details.more[open] summary::after { content: "–"; }
     if (aspect < aspect0) cam.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * aspect0 / aspect));
     cam.updateProjectionMatrix(); snapR.render(scene, cam);
     var out = document.createElement('canvas'); out.width = w; out.height = h; var x = out.getContext('2d');
-    var cs = getComputedStyle(document.documentElement);
+    var cs = getComputedStyle(document.querySelector('.app'));
     if (snapOpt.bg === 'studio') { var gr = x.createRadialGradient(w * 0.4, h * 0.3, 0, w * 0.4, h * 0.3, Math.max(w, h)); gr.addColorStop(0, cs.getPropertyValue('--sweep-a').trim() || '#f4f3f0'); gr.addColorStop(1, cs.getPropertyValue('--sweep-b').trim() || '#d9dbde'); x.fillStyle = gr; x.fillRect(0, 0, w, h); }
     if (snapOpt.bg === 'white') { x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h); }
     if (snapOpt.bg === 'black') { x.fillStyle = '#0b0c0e'; x.fillRect(0, 0, w, h); }
@@ -867,6 +928,15 @@ details.more[open] summary::after { content: "–"; }
       var target = presses.length / 5 * 60 / 6; wpm += (target - wpm) * 0.25; $('wpm').textContent = Math.round(wpm);
     }
     if (stepOleds(t) && vis.screens) dirty = true;
+    if (coversOn && +ui.explode.value === 0) {                 // the covers drop on, click in, rest, lift off, rest
+      var ph = ((t - coverT0) % 6000) / 6000, up = 28, z;
+      if (ph < 0.18) { var k1 = ph / 0.18; z = up * Math.pow(1 - k1, 3); }
+      else if (ph < 0.2) z = -0.25 * Math.sin((ph - 0.18) / 0.02 * Math.PI);
+      else if (ph < 0.62) z = 0;
+      else if (ph < 0.8) { var k2 = (ph - 0.62) / 0.18; z = up * k2 * k2 * (3 - 2 * k2); }
+      else z = up;
+      coverLift = z; halves.L.covers.position.z = z; halves.R.covers.position.z = z; dirty = true;
+    }
     if (dirty) { renderer.render(scene, camera); dirty = false; }
   }
   window.__air75 = { scene: scene };

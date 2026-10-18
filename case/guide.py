@@ -27,6 +27,8 @@ import trimesh
 for n in ("left_shell", "left_base", "right_shell", "right_base"):
     VOL[n] = trimesh.load(os.path.join(OUT, "out", "stl", n + ".stl")).volume / 1000
 PRINT_G = sum(VOL.values()) * 1.24 * 0.75          # PLA, walls + ~20 % infill come out near 75 % of solid
+import covers as CV
+COVER_G = sum(trimesh.load(os.path.join(OUT, "out", "stl", n + "_cover.stl")).volume for n in ("left", "right")) / 1000 * 1.27   # PETG, thin walls print solid
 PARTS_G = len(keys) * (1.6 + 1.3 + 0.15) + 2 * 2.5 + 2 * 9.0 + 2 * 1.5 + 2 * NMAG * 0.15 + 18 * 0.4 + 8 + 10   # switch, cap, diode each; boards, batteries, magnets, screws/inserts, wire, stabs
 WEIGHT = PRINT_G + PARTS_G
 
@@ -89,6 +91,18 @@ Left half is everything left of the `||`. The Fn key is the last key in the left
 - The 3D viewer runs the same drawing code: `case/oled_check.py` runs the C renderer and the viewer's JavaScript copy on the same typing session and checks every frame matches byte for byte.
 - Battery: the screens only redraw while something moves (25 frames a second while you type, nothing when you stop), and ZMK turns them off when the keyboard goes idle. The bus to the screens runs at 400 kHz, so a full frame takes about 12 ms. To go back to ZMK's plain status screen, add `CONFIG_ZMK_DISPLAY_STATUS_SCREEN_BUILT_IN=y` to `zmk-config/config/air75_split.conf`.
 
+## Key covers
+
+Two snap-on covers, one per half, for carrying the keyboard in a bag (`out/stl/print_ready/left_cover.stl`, `right_cover.stl`). The viewer's **Covers** view shows them snapping on.
+
+- The top sits {CV.z_ceiling() - T['cap_top']:.1f} mm above the keycaps, so nothing presses a key and the keyboard stays asleep in the bag.
+- Four snap tabs per cover (two front, two back) flex out on slots and hook under the case's rounded bottom edge. Their hooks follow the edge {CV.HOOK_GAP} mm away and reach {G.soft(0.0, G.EDGE_RB) - CV.HOOK_GAP:.2f} mm under it. Push the cover straight down until it clicks; pull at a front corner to take it off.
+- The tabs stop above the desk, so a covered half still stands on its feet. A notch in the back skirt keeps the power switch and reset hole reachable: switch the halves off before packing them.
+- The covers only go on with the halves apart (the skirt wraps the seam side too). The right cover leaves room for the V tongue on the seam.
+- Top edge: a 45° chamfer, which prints cleanly face-down. "AIR75" and "SPLIT" are pressed {CV.TEXT_DEPTH} mm into the tops.
+- Print in smoke or clear PETG so the keys and screens show through: top face down, no supports, 0.2 mm layers, 4 walls (the 1.6 mm walls print solid). About {COVER_G:.0f} g for the pair.
+- Snap fit depends on your printer. If a cover is too tight, sand the hooks lightly; if too loose, a thin strip of tape on the hook face firms it up.
+
 ## How the halves join
 
 - The seam is a staircase that follows key-cell edges, so no switch is cut. Gap is {G.SEAM_GAP} mm.
@@ -120,7 +134,7 @@ Left half is everything left of the `||`. The Fn key is the last key in the left
 ## Files
 
 ```
-out/stl/            STLs in their assembled position: left/right shell, base, OLED bezel, fit_test_plate
+out/stl/            STLs in their assembled position: left/right shell, base, OLED bezel, key cover, fit_test_plate
 out/stl/print_ready/  the same parts already turned the way they go on the bed: open in the slicer and print
 out/step/           same parts as STEP
 out/*.png           top views, thickness section, wiring sheets (every wire and diode, real routes)
@@ -192,6 +206,7 @@ Every part prints with **no supports**. Open the files in `out/stl/print_ready/`
 | Shell (x2) | switch plate face down | the plate gets the smooth bed finish; walls, posts and the seam grow straight up |
 | Base (x2) | flat, outside face down | foot recesses and countersinks bridge or slope at 45° or less |
 | OLED bezel (x2) | window face down | the face around the screen gets the bed finish; the pegs end up on top |
+| Key cover (x2) | top face down | the top gets the bed finish; skirt and snap tabs grow straight up |
 | Fit test plate | flat | |
 
 How the shapes help:

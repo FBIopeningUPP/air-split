@@ -24,7 +24,7 @@ for s, nm in (("L", "left"), ("R", "right")):
     h = G.half(s)
     b = h["bounds"]
     data[s] = dict(
-        shell=mesh(f"{nm}_shell"), base=mesh(f"{nm}_base"), bezel=mesh(f"{nm}_oled_bezel"),
+        shell=mesh(f"{nm}_shell"), base=mesh(f"{nm}_base"), bezel=mesh(f"{nm}_oled_bezel"), cover=mesh(f"{nm}_cover"),
         bounds=[b[0], b[1], b[2], b[3]],
         keys=[[round(k["X"], 3), round(k["Y"], 3), k["w"], k["label"], k["row"], k["col_local"], POS[(k["row"], round(k["x0"], 3))]] for k in h["keys"]],
         comp={n: [c["cx"], c["cy"], c["w"], c["h"]] for n, c in h["comp"].items()}, side=s,
