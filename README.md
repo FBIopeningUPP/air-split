@@ -1,4 +1,4 @@
-<h1 align="center">Air75 Split</h1>
+<p align="center"><img src="docs/images/banner.jpg" alt="Snap70: split wireless keyboard, 8 mm thin, snaps together on magnets"></p>
 
 <p align="center"><b>A 70-key wireless keyboard that snaps together on magnets, or pulls apart into a split.</b><br>
 8 mm case · animated OLED on each half · handwired, no PCB · every part prints with no supports</p>
@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/supports-none-555?style=flat-square" alt="prints with no supports">
 </p>
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_hero_dark.jpg"><img src="docs/images/render_hero.jpg" alt="Air75 Split, joined, in graphite with ivory keycaps"></picture></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_hero_dark.jpg"><img src="docs/images/render_hero.jpg" alt="Snap70, joined, in graphite with ivory keycaps"></picture></p>
 
 <p align="center">
   <a href="docs/BUILD.md"><b>Build guide</b></a> ·

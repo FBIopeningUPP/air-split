@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Air75 Split Studio</title>
+<title>Snap70 Studio</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
@@ -109,7 +109,7 @@ details.more[open] summary::after { content: "–"; }
 <div class="app">
   <canvas id="gl" tabindex="0" aria-label="3D model of the Air75 split keyboard. Drag to orbit, scroll or pinch to zoom. Type to press its keys."></canvas>
   <header class="brand">
-    <h1>Air75 <span>Split</span></h1>
+    <h1>Snap<span>70</span></h1>
     <div class="spec" id="spec"></div>
     <div class="mode" id="mode"></div>
     <div class="screens" aria-label="Live view of both OLED screens">
@@ -1232,6 +1232,10 @@ details.more[open] summary::after { content: "–"; }
     cutX: function () { var jb = joinedBounds(); return jb[0] + (jb[1] - jb[0]) * ui.cut.value / 100; },
     redraw: function () { dirty = true; },
     halves: halves, D: D,
+    tint: function (names, hex) {                                            // recolour some keycaps (for the banner)
+      var m = capMat.clone(); m.color.copy(col(hex));
+      names.forEach(function (n) { (keyIndex[n] || []).forEach(function (c) { c.material = m; }); }); dirty = true;
+    },
     tilt: function (a, wedge) {                                              // tent by any angle; show one wedge (or none)
       tentAngle = a; layout();
       ['L', 'R'].forEach(function (s) { Object.keys(halves[s].tents).forEach(function (k) { halves[s].tents[k].visible = +k === wedge; }); });

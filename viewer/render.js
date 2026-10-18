@@ -162,6 +162,49 @@ async function covers(page) {
   }, 8, 480);
 }
 
+// banner for posts: title, subtitle, pills, and the two halves apart in cream with dark modifiers and orange accents
+async function banner(page) {
+  const BG = '#141414', ORANGE = 0xe8552d, DARK = 0x2d3035;
+  await setup(page, { view: 'asm', colors: [1, 0], gap: 46, type: 2500 });
+  await page.evaluate(([O, K]) => {
+    const A = window.__air75;
+    A.tint(['L:Tab', 'L:Caps', 'L:Shift', 'L:Ctrl', 'L:Win', 'L:Alt', 'L:Space', 'R:Space', 'R:Alt', 'R:Menu', 'R:Ctrl', 'R:Shift',
+            'R:Bksp', 'R:Del', 'R:\\', 'R:PgUp', 'R:PgDn', 'R:End', 'R:Up', 'R:Down', 'R:Left', 'R:Right'], K);
+    A.tint(['L:Esc', 'L:Fn', 'R:Enter'], O);
+  }, [ORANGE, DARK]);
+  await aim(page, [-14, 36, 0.66, 0, 16, 16]);
+  await page.waitForTimeout(400);
+  const W2 = 2000, H2 = 1125;
+  const [img] = await page.evaluate((o) => window.__air75.shots(o), { size: W2 * 2, out: [W2, H2], bgs: [BG], fmt: 'image/png' });
+  const url = await page.evaluate(async ([img, W2, H2, BG]) => {
+    await document.fonts.load('600 10px Inter'); await document.fonts.load('500 10px Inter');
+    const c = document.createElement('canvas'); c.width = W2; c.height = 1000; const x = c.getContext('2d');
+    x.fillStyle = BG; x.fillRect(0, 0, W2, 1000);
+    const g = x.createRadialGradient(W2 / 2, 520, 0, W2 / 2, 520, 1100); g.addColorStop(0, 'rgba(255,255,255,0.05)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, W2, 1000);
+    const im = new Image(); im.src = img; await im.decode();
+    x.globalCompositeOperation = 'lighten'; x.drawImage(im, 0, 1000 - H2 + 40); x.globalCompositeOperation = 'source-over';
+    x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+    x.fillStyle = '#f2efe8'; x.font = '600 150px Inter, sans-serif'; x.fillText('Snap70', W2 / 2, 175);
+    x.fillStyle = '#a3a3a3'; x.font = '400 40px Inter, sans-serif';
+    x.fillText('Split wireless keyboard \u00b7 8 mm thin \u00b7 snaps together on magnets', W2 / 2, 255);
+    const pills = ['70 KEYS', 'ZMK', 'nRF52840', 'KS-33 LOW PROFILE', 'ANIMATED OLEDS'];
+    x.font = '600 26px Inter, sans-serif'; const ph = 50, gap = 14, padx = 22;
+    const ws = pills.map((p) => x.measureText(p).width + padx * 2), tot = ws.reduce((a, b) => a + b, 0) + gap * (pills.length - 1);
+    let px = (W2 - tot) / 2; const py = 300;
+    pills.forEach((p, i) => {
+      x.beginPath(); x.roundRect(px, py, ws[i], ph, ph / 2);
+      if (i === 0) { x.fillStyle = '#e8552d'; x.fill(); x.fillStyle = '#ffffff'; }
+      else { x.strokeStyle = '#4a4a4a'; x.lineWidth = 2; x.stroke(); x.fillStyle = '#e6e6e6'; }
+      x.textAlign = 'center'; x.fillText(p, px + ws[i] / 2, py + ph / 2 + 9); px += ws[i] + gap;
+    });
+    return c.toDataURL('image/jpeg', 0.93);
+  }, [img, W2, H2, BG]);
+  const f = path.join(IMG, 'banner.jpg');
+  fs.writeFileSync(f, Buffer.from(url.split(',')[1], 'base64'));
+  console.log(`${path.relative(ROOT, f)}  ${(fs.statSync(f).size / 1024).toFixed(0)} KB`);
+}
+
 (async () => {
   const want = process.argv.slice(2);
   const pick = (n) => !want.length || want.includes(n);
@@ -177,6 +220,7 @@ async function covers(page) {
   await page.waitForFunction(() => window.__air75 && window.__air75.shots, null, { timeout: 120000 });
   fs.mkdirSync(IMG, { recursive: true });
   for (const [name, s] of Object.entries(SHOTS)) if (pick(name)) await still(page, name, s);
+  if (want.includes('banner')) await banner(page);
   if (pick('split')) await split(page);
   if (pick('covers')) await covers(page);
   if (pick('turntable')) await turntable(page);

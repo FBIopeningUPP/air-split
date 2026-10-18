@@ -14,7 +14,7 @@ def write(g):
     G, T, P, info, keys, bL = g["G"], g["T"], g["P"], g["info"], g["keys"], g["bL"]
     TN, CV = g["TN"], g["CV"]
     lifts = " / ".join(f"{a}°" for a in TN.ANGLES)
-    md = f"""<h1 align="center">Air75 Split</h1>
+    md = f"""<p align="center"><img src="docs/images/banner.jpg" alt="Snap70: split wireless keyboard, 8 mm thin, snaps together on magnets"></p>
 
 <p align="center"><b>A {len(keys)}-key wireless keyboard that snaps together on magnets, or pulls apart into a split.</b><br>
 {G.H_TOTAL:.0f} mm case · animated OLED on each half · handwired, no PCB · every part prints with no supports</p>
@@ -27,7 +27,7 @@ def write(g):
   <img src="https://img.shields.io/badge/supports-none-555?style=flat-square" alt="prints with no supports">
 </p>
 
-<p align="center">{pic("render_hero", "Air75 Split, joined, in graphite with ivory keycaps")}</p>
+<p align="center">{pic("render_hero", "Snap70, joined, in graphite with ivory keycaps")}</p>
 
 <p align="center">
   <a href="docs/BUILD.md"><b>Build guide</b></a> ·
