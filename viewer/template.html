@@ -622,15 +622,16 @@ details.more[open] summary::after { content: "–"; }
     var b = new THREE.Box3().setFromObject(halves.L.shell); b.union(new THREE.Box3().setFromObject(halves.R.shell));
     return { c: b.getCenter(new THREE.Vector3()), size: b.getSize(new THREE.Vector3()) };
   }
-  function frameDist(sx, sy, aspect) { var v = THREE.MathUtils.degToRad(camera.fov) / 2, hz = Math.atan(Math.tan(v) * aspect); return Math.max(sx / (2 * Math.tan(hz)), sy / (2 * Math.tan(v))); }
+  function frameDist(sx, sy, aspect) { if (!(aspect > 0) || !isFinite(aspect)) aspect = 16 / 9; var v = THREE.MathUtils.degToRad(camera.fov) / 2, hz = Math.atan(Math.tan(v) * aspect); return Math.max(sx / (2 * Math.tan(hz)), sy / (2 * Math.tan(v))); }
   function railShift() { return window.innerWidth > 760 ? 150 : 0; }
   function flyTo(pos, tgt, instant) {
     var p0 = camera.position.clone(), t0 = controls.target.clone(), p1 = new THREE.Vector3(pos[0], pos[1], pos[2]), t1 = tgt.clone ? tgt.clone() : new THREE.Vector3(tgt[0], tgt[1], tgt[2]);
-    if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { camera.position.copy(p1); controls.target.copy(t1); controls.update(); return; }
+    if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { anim = null; camera.position.copy(p1); controls.target.copy(t1); controls.update(); dirty = true; return; }
     anim = { p0: p0, t0: t0, p1: p1, t1: t1, start: performance.now(), dur: 700 };
   }
   function viewPose(name) {
-    var m = center(), c = m.c.clone(), aspect = canvas.clientWidth / Math.max(1, canvas.clientHeight);
+    var m = center(), c = m.c.clone(), cw = canvas.clientWidth, ch = canvas.clientHeight;
+    var aspect = cw > 0 && ch > 0 ? cw / ch : 16 / 9;                      // the page can start in a zero-size frame
     var dist = frameDist(m.size.x + railShift() * 0.9, m.size.y * 1.35, aspect) * 1.18;
     if (name === 'under') c.x -= railShift() * 0.18; else if (name !== 'side') c.x += railShift() * 0.18;
     var P = {
@@ -645,7 +646,8 @@ details.more[open] summary::after { content: "–"; }
     }
     return [P, c];
   }
-  function setCam(name, instant) { var v = viewPose(name); flyTo(v[0], v[1], instant); document.querySelectorAll('#cams button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.cam === name)); }); }
+  var lastCam = 'iso', framedVisible = false;
+  function setCam(name, instant) { lastCam = name; framedVisible = canvas.clientWidth > 0 && canvas.clientHeight > 0; var v = viewPose(name); flyTo(v[0], v[1], instant); document.querySelectorAll('#cams button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.cam === name)); }); }
 
   // ---------- views ----------
   function setVis(o) { PARTS.forEach(function (p) { vis[p[0]] = o[p[0]] !== undefined ? o[p[0]] : true; }); visibility(); }
@@ -835,7 +837,8 @@ details.more[open] summary::after { content: "–"; }
   // ---------- loop ----------
   function resize() {
     var w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
-    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); dirty = true;
+    if (!framedVisible) setCam(lastCam, true);        // the view was framed while the page had no size: frame it again now
   }
   if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas); else window.addEventListener('resize', resize);
   var last = 0, lastOled = 0, dirty = true;
@@ -849,6 +852,8 @@ details.more[open] summary::after { content: "–"; }
       if (k >= 1) anim = null;
     }
     if (controls.autoRotate) dirty = true;
+    var cp = camera.position, ct = controls.target;
+    if (!isFinite(cp.x + cp.y + cp.z + ct.x + ct.y + ct.z)) setCam('iso', true);   // never get stuck with the model out of view
     controls.update();
     for (var s in keyIndex) keyIndex[s].forEach(function (c) {
       var target = c.userData.press ? -K.travel : 0, cur = c.position.z - c.userData.z0;
