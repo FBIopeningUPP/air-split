@@ -102,7 +102,7 @@ textarea.copyfallback { width: 100%; min-height: 160px; font: 12px var(--mono); 
 <div class="wrap">
   <header>
     <h1>Air75 <span>Split</span> parts</h1>
-    <p class="sub">Everything for both halves of the 70-key (65 %) wireless Air75 split: a smooth 8.0 mm case that prints with no supports (16.4 mm with keycaps on its feet), Gateron KS-33 switches, two SuperMini nRF52840 boards, two 0.91" OLEDs and two KP 551245 batteries. Tick parts off as they arrive. Prices you type are kept in this browser.</p>
+    <p class="sub">Everything for both halves of the 70-key (65 %) wireless Air75 split: a smooth 8.0 mm case that prints with no supports (16.4 mm with keycaps on its feet), Gateron KS-33 switches, printed keycaps, two SuperMini nRF52840 boards, two 0.91" OLEDs and two KP 551245 batteries. Tick parts off as they arrive. Prices you type are kept in this browser.</p>
   </header>
 
   <div class="summary">
@@ -141,7 +141,8 @@ const PARTS = [
   { g: "Electronics", id: "mcu", name: "SuperMini nRF52840", spec: "nice!nano-compatible · USB-C · 33 × 18 mm · 13 pads per side", qty: 2, spare: 0, price: 550,
     store: "Robu / Robokits / AliExpress", note: "Leave the header pins off: wires solder straight to the pads. It sits on 1 mm foam tape." },
   { g: "Electronics", id: "batt", name: "KP Original 551245 LiPo, 3.7 V", spec: "48 × 14 × 5.1 mm with its protection board · 480 mAh listed", qty: 2, spare: 0, price: 190,
-    store: "Zbotic (listed in stock, ₹189.98)", note: "Sits in a 0.6 mm pocket in the base. Real capacity is likely 300–400 mAh." },
+    store: "Zbotic, SKU AI6793", url: "https://zbotic.in/product-category/batteries-chargers-and-accessories/single-cell-micro-lipo-battery/?view_mode=list",
+    stock: "In stock · checked 18 Oct 2026", note: "Link opens Zbotic's micro LiPo list: pick KP Original 551245 (SKU AI6793). Listed at ₹189.98 to ₹202.96; one Zbotic page showed it on backorder, so check the cart says in stock. Sits in a 0.6 mm pocket in the base. Real capacity is likely 300–400 mAh." },
   { g: "Electronics", id: "oled", name: "0.91\" OLED, 128 × 32, SSD1306, I²C", spec: "4 pins: GND VCC SCL SDA · 38 × 12 mm board", qty: 2, spare: 0, price: 229,
     store: "Robu / Zbotic / Amazon", note: "Take the header pins off and solder the 4 wires straight to the pads. SDA → D2, SCL → D3." },
   { g: "Electronics", id: "slide", name: "Slide switch, SS-12D10 class", spec: "power · 8.6 × 3.6 mm body · knob through the back wall", qty: 2, spare: 2, price: 10, store: "Robu / any" },
@@ -149,12 +150,9 @@ const PARTS = [
     note: "Double-press = bootloader, even with broken firmware." },
   { g: "Electronics", id: "diode", name: "1N4148 diodes, DO-35", spec: "through-hole · band toward the row wire", qty: 70, spare: 10, price: 1, pack: "pack of 100", store: "Robu / any" },
 
-  { g: "Switches & keycaps", id: "ks33", name: "Gateron KS-33 Low Profile 2.0 switches", spec: "Red is the quietest of Meckeys' three · 14.0 mm plate hole", qty: 70, spare: 5, price: 18, pack: "packs of 10 (about ₹180)", store: "Meckeys / StacksKB / Keychron" },
-  { g: "Switches & keycaps", id: "stab", name: "Low-profile plate-mount 2u stabilizers", spec: "Bksp, Enter, left Shift, both spaces", qty: 5, spare: 0, price: 120, store: "Meckeys / Keychron",
+  { g: "Switches", id: "ks33", name: "Gateron KS-33 Low Profile 2.0 switches", spec: "Red is the quietest of Meckeys' three · 14.0 mm plate hole", qty: 70, spare: 5, price: 18, pack: "packs of 10 (about ₹180)", store: "Meckeys / StacksKB / Keychron" },
+  { g: "Switches", id: "stab", name: "Low-profile plate-mount 2u stabilizers", spec: "Bksp, Enter, left Shift, both spaces", qty: 5, spare: 0, price: 120, store: "Meckeys / Keychron",
     note: "Print the fit-test plate first: their cutout is the one size not taken from a datasheet." },
-  { g: "Switches & keycaps", id: "caps", name: "Low-profile keycap set for Gateron LP", spec: "blank, no legends · MX-style stem · nSA / LSA style · 65 % layout", qty: 1, spare: 0, price: 3000, pack: "1 set", store: "Meckeys / Keychron / NuPhy",
-    note: "You need two 2u spacebars (one per half). Most sets have one 2u key at most." },
-  { g: "Switches & keycaps", id: "cap2u", name: "Extra 2u keycap (low profile)", spec: "for the second spacebar", qty: 1, spare: 0, price: 200, optional: true, store: "same shop, or print one" },
 
   { g: "Case hardware", id: "insert", name: "M2 × 4 mm brass heat-set inserts", spec: "outer Ø about 3.2 mm · 8 left, 10 right", qty: 18, spare: 6, price: 6, pack: "packs of 10", store: "Robu" },
   { g: "Case hardware", id: "screw", name: "M2 × 5 mm countersunk screws", spec: "DIN 965 / ISO 7046", qty: 18, spare: 6, price: 4, pack: "pack of 25", store: "Robu / hardware shop" },
@@ -163,6 +161,8 @@ const PARTS = [
   { g: "Case hardware", id: "feet", name: "8 mm round silicone feet, 1.5 mm", spec: "self-adhesive · 4 per half", qty: 8, spare: 2, price: 5, pack: "1 sheet", store: "Amazon / hardware shop" },
 
   { g: "Printing", id: "pla", name: "PLA or PETG filament, 1 kg", spec: "case, bases and OLED bezels about 87 g · no supports · fit-test plate 2 g", qty: 1, spare: 0, price: 900, store: "any filament shop" },
+  { g: "Printing", id: "caps", name: "Keycaps, printed", spec: "1u × 54 · 1.25u × 6 · 1.5u × 3 · 1.75u × 2 · 2u × 3 · 2.25u × 2 · MX-style low-profile stem", qty: 70, spare: 0, price: 0, store: "you print these",
+    note: "Two 2u spacebars (one per half) plus Backspace." },
 
   { g: "Wiring & consumables", id: "wire", name: "30 AWG silicone wire", spec: "7.7 m routed · buy 10 m in 4+ colours (rows, columns, power, signal)", qty: 1, spare: 0, price: 350, pack: "set of colours", store: "Robu / any" },
   { g: "Wiring & consumables", id: "kapton", name: "Kapton tape, 10 mm", spec: "over the battery protection board and the board's back", qty: 1, spare: 0, price: 150, store: "Robu / any" },
@@ -233,6 +233,7 @@ function rowEl(p) {
   const buy = r.querySelector(".buy");
   if (p.url) { const a = document.createElement("a"); a.href = p.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = p.store + " ↗"; buy.appendChild(a); }
   else { const s = document.createElement("span"); s.textContent = p.store || ""; buy.appendChild(s); }
+  if (p.stock) { const s = document.createElement("span"); s.className = "pill ok"; s.textContent = p.stock; buy.appendChild(s); }
   if (unit(p) > 0) buy.insertAdjacentHTML("beforeend", status);
   const tick = r.querySelector(".tick"); tick.checked = !!state.have[p.id];
   tick.addEventListener("change", () => { state.have[p.id] = tick.checked; save(); render(); });

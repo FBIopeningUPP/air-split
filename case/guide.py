@@ -193,9 +193,9 @@ The switch numbers come from Gateron's KS-33 STEP model, but the stabilizers and
 | {len(keys)} (+5 spare) | Gateron KS-33 low-profile 2.0 switches | Meckeys sells packs of 10 (Red is the quietest of their three) |
 | 5 | Gateron low-profile plate-mount 2u stabilizers | Bksp, Enter, left Shift, both spaces |
 | {len(keys)} | 1N4148 diodes, DO-35 | |
-| 1 set | Blank low-profile keycaps for Gateron LP | sizes below; or print them |
+| {len(keys)} | Keycaps, printed | sizes below |
 | 2 | 0.91" 128 x 32 OLED, SSD1306, I2C | GND VCC SCL SDA |
-| 2 | KP Original 551245 LiPo | 48 x 14 x 5.1 mm, Zbotic |
+| 2 | KP Original 551245 LiPo | 48 x 14 x 5.1 mm, [Zbotic](https://zbotic.in/product-category/batteries-chargers-and-accessories/single-cell-micro-lipo-battery/?view_mode=list) SKU AI6793, listed in stock at ₹189.98 to ₹202.96 (checked 18 Oct 2026; one page showed backorder, so check the cart) |
 | {NMAG*2} | N52 disc magnets, 5 x 1 mm | {NMAG} per half |
 | 2 | Slide switch (SS-12D10 class) | power |
 | 2 | Right-angle tactile switch | reset |
@@ -205,13 +205,13 @@ The switch numbers come from Gateron's KS-33 STEP model, but the stabilizers and
 | 8 | 8 mm round silicone feet, 1.5 mm thick | 4 per half |
 | 1 | 1 mm double-sided foam tape, Kapton tape, hot glue, CA glue | controller, OLED, battery, bezel |
 
-Keycaps needed:
+Keycaps to print:
 
 | Size | Count |
 |---|---|
 {cap_rows}
 
-You need two 2u keycaps for the spacebars plus one for Backspace. Low-profile sets usually include one or two 2u keys, so check before buying, or print them.
+That is two 2u spacebars (one per half) plus one 2u Backspace.
 
 ## Print
 
