@@ -996,6 +996,7 @@ details.more[open] summary::after { content: "–"; }
     cutX: function () { var jb = joinedBounds(); return jb[0] + (jb[1] - jb[0]) * ui.cut.value / 100; },
     redraw: function () { dirty = true; },
     halves: halves, D: D,
+    caseColor: function (hex) { shellMat.color.copy(col(hex)); dirty = true; },
     tint: function (names, hex) {                                            // recolour some keycaps (for the banner)
       var m = capMat.clone(); m.color.copy(col(hex));
       names.forEach(function (n) { (keyIndex[n] || []).forEach(function (c) { c.material = m; }); }); dirty = true;

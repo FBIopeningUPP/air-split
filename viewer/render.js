@@ -164,14 +164,15 @@ async function covers(page) {
 
 // banner for posts: title, subtitle, pills, and the two halves apart in cream with dark modifiers and orange accents
 async function banner(page) {
-  const BG = '#141414', ORANGE = 0xe8552d, DARK = 0x2d3035;
+  const BG = '#141414', ORANGE = 0xe8552d, DARK = 0x2d3035, CASE = parseInt(process.env.CASE || '2b59c3', 16);
   await setup(page, { view: 'asm', colors: [1, 0], gap: 46, type: 2500 });
-  await page.evaluate(([O, K]) => {
+  await page.evaluate(([O, K, C]) => {
     const A = window.__air75;
     A.tint(['L:Tab', 'L:Caps', 'L:Shift', 'L:Ctrl', 'L:Win', 'L:Alt', 'L:Space', 'R:Space', 'R:Alt', 'R:Menu', 'R:Ctrl', 'R:Shift',
             'R:Bksp', 'R:Del', 'R:\\', 'R:PgUp', 'R:PgDn', 'R:End', 'R:Up', 'R:Down', 'R:Left', 'R:Right'], K);
     A.tint(['L:Esc', 'L:Fn', 'R:Enter'], O);
-  }, [ORANGE, DARK]);
+    if (C) A.caseColor(C);
+  }, [ORANGE, DARK, CASE]);
   await aim(page, [-14, 36, 0.66, 0, 16, 16]);
   await page.waitForTimeout(400);
   const W2 = 2000, H2 = 1125;
@@ -200,7 +201,7 @@ async function banner(page) {
     });
     return c.toDataURL('image/jpeg', 0.93);
   }, [img, W2, H2, BG]);
-  const f = path.join(IMG, 'banner.jpg');
+  const f = path.join(IMG, process.env.OUT || 'banner.jpg');
   fs.writeFileSync(f, Buffer.from(url.split(',')[1], 'base64'));
   console.log(`${path.relative(ROOT, f)}  ${(fs.statSync(f).size / 1024).toFixed(0)} KB`);
 }
