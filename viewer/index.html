@@ -979,7 +979,7 @@ details.more[open] summary::after { content: "–"; }
     tentAngle = 0; document.querySelectorAll('#tent button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.t === '0')); });
     if (v === 'covers') { setVis({}); ui.gap.value = 50; coverT0 = performance.now(); }
     if (v === 'showcase') { setVis({}); setLights('night'); }
-    layout(); modeEl.textContent = MODES[v];
+    visibility(); layout(); modeEl.textContent = MODES[v];
     document.querySelectorAll('#views button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.v === v)); });
     document.querySelectorAll('#closeups button').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
     if (showcaseOn) {
@@ -1232,6 +1232,7 @@ details.more[open] summary::after { content: "–"; }
     cutX: function () { var jb = joinedBounds(); return jb[0] + (jb[1] - jb[0]) * ui.cut.value / 100; },
     redraw: function () { dirty = true; },
     halves: halves, D: D,
+    keys: function () { return Object.keys(keyIndex); },
     caseColor: function (hex) { shellMat.color.copy(col(hex)); dirty = true; },
     tint: function (names, hex) {                                            // recolour some keycaps (for the banner)
       var m = capMat.clone(); m.color.copy(col(hex));
@@ -1253,7 +1254,11 @@ details.more[open] summary::after { content: "–"; }
       var r = snapshot(true); Object.assign(snapOpt, keep);
       return o.bgs.map(function (bg, i) {
         var c = document.createElement('canvas'); c.width = r.w; c.height = r.h; var x = c.getContext('2d');
-        x.fillStyle = bg; x.fillRect(0, 0, r.w, r.h); x.drawImage(r.src, 0, 0);
+        if (Array.isArray(bg)) {                                               // [centre, edge]: a soft studio sweep
+          var gr = x.createRadialGradient(r.w * 0.5, r.h * 0.38, 0, r.w * 0.5, r.h * 0.38, Math.max(r.w, r.h) * 0.75);
+          gr.addColorStop(0, bg[0]); gr.addColorStop(1, bg[1]); x.fillStyle = gr;
+        } else x.fillStyle = bg;
+        x.fillRect(0, 0, r.w, r.h); x.drawImage(r.src, 0, 0);
         if (o.labels) drawLabels(x, r, o.labels, o.ink[i]);
         var o2 = document.createElement('canvas'); o2.width = o.out[0]; o2.height = o.out[1];
         var x2 = o2.getContext('2d'); x2.imageSmoothingEnabled = true; x2.imageSmoothingQuality = 'high'; x2.drawImage(c, 0, 0, o2.width, o2.height);

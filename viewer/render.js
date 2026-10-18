@@ -1,37 +1,50 @@
-// Renders the README images from the 3D viewer, each in a light and a dark version that match GitHub's page colours.
+// Renders the README images from the 3D viewer, then viewer/compose.py turns them into the stats strip and colourway sheet.
 //
 //   node viewer/render.js                  everything
-//   node viewer/render.js hero split       only these (stills by name, or turntable / split / covers for the GIFs)
+//   node viewer/render.js hero banner      only these (stills by name, banner, colorways, or turntable / split / covers for GIFs)
 //
-// Needs Playwright (npm i -g playwright) and ffmpeg. If the machine can't reach the CDN, point THREE_DIR at a local copy
-// of three@0.128.0 (the folder that holds build/ and examples/).
+// Needs Playwright (npm i -g playwright) and ffmpeg for the GIFs. If the machine can't reach the CDN, point THREE_DIR at
+// a local copy of three@0.128.0 (the folder that holds build/ and examples/).
 const path = require('path'), fs = require('fs'), { execFileSync } = require('child_process');
 const { chromium } = require('playwright');
 
 const ROOT = path.join(__dirname, '..');
 const IMG = path.join(ROOT, 'docs', 'images');
 const TMP = path.join(ROOT, 'build', 'renders');
-const THEMES = [['', '#ffffff', '#1f2328'], ['_dark', '#0d1117', '#e6edf3']];   // file suffix, GitHub page colour, text colour
-const W = 1920, H = 1080, SS = 2;                                               // still size, supersampling
+const STUDIO = ['#f0efeb', '#d8d7d2'];              // warm studio sweep, centre to edge
+const DARKBG = '#121316';
+const W = 1920, H = 1080, SS = 2;                   // still size, supersampling
+
+// colourways: case, keycaps, modifiers, accents (Esc, Fn, Enter)
+const STYLES = {
+  cobalt:   { case: 0x2b59c3, caps: 0xf0ede6, mods: 0x2d3035, acc: 0xe8552d },
+  bone:     { case: 0xe4ddcf, caps: 0xf8f6f1, mods: 0x2a2b30, acc: 0xe5532a },
+  graphite: { case: 0x3a3d42, caps: 0x2d3035, mods: 0x9a9fa6, acc: 0xe8552d },
+  sage:     { case: 0x8f9d88, caps: 0xf0ede6, mods: 0x5d6b57, acc: 0xd9b44a },
+  signal:   { case: 0xe8552d, caps: 0x2d3035, mods: 0xf0ede6, acc: 0xf0ede6 },
+  lilac:    { case: 0xb7a6d9, caps: 0xf3f1ec, mods: 0x6b4f8a, acc: 0xf2d98a },
+};
+const MODS = ['L:Tab', 'L:Caps', 'L:Shift', 'L:Ctrl', 'L:Win', 'L:Alt', 'L:Space', 'R:Space', 'R:Alt', 'R:Menu', 'R:Ctrl', 'R:Shift',
+  'R:Bksp', 'R:Del', 'R:\\', 'R:PgUp', 'R:PgDn', 'R:End', 'R:Up', 'R:Down', 'R:Left', 'R:Right'];
+const ACCENTS = ['L:Esc', 'L:Fn', 'R:Enter'];
 
 // cam: [azimuth deg (0 = from the front), elevation deg, share of the frame width the board fills, target shift x, y, z mm, 'cut']
 const ISO = [-26, 30, 0.84, 0, 0, 0];
 const SHOTS = {
   hero:     { view: 'asm', type: 1500, cam: [-26, 28, 0.82, 0, 0, 0] },
-  oled:     { view: 'asm', lights: 'night', type: 3000, close: 'oled', themes: [['', '#0d1117'], ['_dark', '#0d1117']] },
-  top:      { view: 'asm', cam: [0, 89.5, 0.84, 0, 0, 0] },
   slim:     { view: 'asm', cam: [-58, 5, 1.7, -95, -20, 6] },
+  oled:     { view: 'asm', lights: 'night', type: 3000, close: 'oled', bg: DARKBG },
   tented:   { view: 'asm', tent: 10, cam: [0, 14, 0.8, 0, 0, 10] },
   covers:   { view: 'covers', cover: 2400, cam: [-26, 30, 0.82, 0, 0, 0] },
   exploded: { view: 'explode', cam: [-22, 18, 0.52, 0, 0, 4], labels: true },
   inside:   { view: 'inside', cam: [-24, 40, 0.84, 0, 0, 0] },
   wiring:   { view: 'wiring', cam: [0, -62, 0.84, 0, 0, 0] },
+  top:      { view: 'asm', cam: [0, 89.5, 0.84, 0, 0, 0] },
   apart:    { view: 'apart', cam: [-18, 42, 0.84, 0, 0, 0] },
   section:  { view: 'section', cam: [70, 14, 2.4, 0, 0, 6, 'cut'] },
-  sage:     { view: 'asm', colors: [2, 0], cam: ISO, size: [1280, 720] },
-  slate:    { view: 'asm', colors: [3, 4], cam: ISO, size: [1280, 720] },
-  chalk:    { view: 'asm', colors: [1, 1], cam: ISO, size: [1280, 720] },
 };
+for (const k of Object.keys(STYLES)) SHOTS['cw_' + k] = { view: 'asm', style: k, cam: ISO, size: [1200, 675] };   // colourway tiles
+
 // the exploded view's labels: [text, half, part, point inside the part's box (fractions), side of the picture]
 const LABELS = [
   ['Printed keycaps', 'L', 'caps', [0.15, 0.2, 1], 'left'],
@@ -43,16 +56,23 @@ const LABELS = [
   ['Handwired, 70 diodes', 'R', 'wire', [0.8, 0.3, 0.5], 'right'],
 ];
 
+async function style(page, name) {
+  const st = STYLES[name];
+  await page.evaluate(([st, MODS, ACC]) => {
+    const A = window.__air75;
+    A.caseColor(st.case); A.tint(A.keys(), st.caps); A.tint(MODS, st.mods); A.tint(ACC, st.acc);
+  }, [st, MODS, ACCENTS]);
+}
+
 async function setup(page, s) {
   await page.evaluate((s) => {
     const A = window.__air75;
     A.setView(s.view); A.setLights(s.lights || 'day');
-    document.querySelectorAll('#caseSw .sw')[s.colors ? s.colors[0] : 0].click();
-    document.querySelectorAll('#capSw .sw')[s.colors ? s.colors[1] : 0].click();
     if (s.tent) A.setTent(s.tent);
     if (s.close) A.closeUp(s.close);
     if (s.gap) { A.ui.gap.value = s.gap; A.layout(); }
   }, s);
+  await style(page, s.style || 'cobalt');
   if (s.type) await type(page, s.type);
   await page.waitForTimeout(1200);                  // camera flights finish
   if (s.cover !== undefined) await page.evaluate((ms) => window.__air75.coverAt(ms), s.cover);
@@ -83,24 +103,61 @@ async function aim(page, cam) {
   }, cam);
 }
 
-async function shots(page, o) {
-  return (await page.evaluate((o) => window.__air75.shots(o), o)).map((u) => Buffer.from(u.split(',')[1], 'base64'));
+async function shot(page, o) {
+  const [u] = await page.evaluate((o) => window.__air75.shots(o), o);
+  return Buffer.from(u.split(',')[1], 'base64');
 }
 
 async function still(page, name, s) {
   await setup(page, s);
-  const [w, h] = s.size || [W, H], themes = s.themes || THEMES;
+  const [w, h] = s.size || [W, H];
   let labels;
   if (s.labels) labels = await page.evaluate((L) => L.map((l) => ({ text: l[0], pt: window.__air75.point(l[1], l[2], l[3]), side: l[4] })), LABELS);
-  const bufs = await shots(page, { size: w * SS, out: [w, h], bgs: themes.map((t) => t[1]), ink: THEMES.map((t) => t[2]), labels, fmt: 'image/jpeg' });
-  themes.forEach((t, i) => {
-    const f = path.join(IMG, `render_${name}${t[0]}.jpg`);
-    fs.writeFileSync(f, bufs[i]);
-    console.log(`${path.relative(ROOT, f)}  ${(bufs[i].length / 1024).toFixed(0)} KB`);
-  });
+  const buf = await shot(page, { size: w * SS, out: [w, h], bgs: [s.bg || STUDIO], ink: ['#1f2328'], labels, fmt: s.fmt || 'image/jpeg' });
+  const f = path.join(s.dir || IMG, `${name}.${s.fmt === 'image/png' ? 'png' : 'jpg'}`);
+  fs.mkdirSync(path.dirname(f), { recursive: true });
+  fs.writeFileSync(f, buf);
+  console.log(`${path.relative(ROOT, f)}  ${(buf.length / 1024).toFixed(0)} KB`);
 }
 
-// GIFs: render every frame once, write one frame set per theme, then encode each with its own palette
+// banner for posts and the top of the README: title, pills, the two halves apart on a dark background
+async function banner(page) {
+  const BG = '#141414';
+  await setup(page, { view: 'asm', gap: 46, type: 2500 });
+  await aim(page, [-14, 36, 0.66, 0, 16, 16]);
+  await page.waitForTimeout(400);
+  const W2 = 2000, H2 = 1125;
+  const [img] = await page.evaluate((o) => window.__air75.shots(o), { size: W2 * 2, out: [W2, H2], bgs: [BG], fmt: 'image/png' });
+  const url = await page.evaluate(async ([img, W2, H2, BG]) => {
+    await document.fonts.load('600 10px Inter'); await document.fonts.load('500 10px Inter');
+    const c = document.createElement('canvas'); c.width = W2; c.height = 1000; const x = c.getContext('2d');
+    x.fillStyle = BG; x.fillRect(0, 0, W2, 1000);
+    const g = x.createRadialGradient(W2 / 2, 520, 0, W2 / 2, 520, 1100); g.addColorStop(0, 'rgba(255,255,255,0.05)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, W2, 1000);
+    const im = new Image(); im.src = img; await im.decode();
+    x.globalCompositeOperation = 'lighten'; x.drawImage(im, 0, 1000 - H2 + 40); x.globalCompositeOperation = 'source-over';
+    x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+    x.fillStyle = '#f2efe8'; x.font = '600 150px Inter, sans-serif'; x.fillText('Snap70', W2 / 2, 175);
+    x.fillStyle = '#a3a3a3'; x.font = '400 40px Inter, sans-serif';
+    x.fillText('Split wireless keyboard \u00b7 8 mm thin \u00b7 snaps together on magnets', W2 / 2, 255);
+    const pills = ['70 KEYS', 'ZMK', 'nRF52840', 'KS-33 LOW PROFILE', 'ANIMATED OLEDS'];
+    x.font = '600 26px Inter, sans-serif'; const ph = 50, gap = 14, padx = 22;
+    const ws = pills.map((p) => x.measureText(p).width + padx * 2), tot = ws.reduce((a, b) => a + b, 0) + gap * (pills.length - 1);
+    let px = (W2 - tot) / 2; const py = 300;
+    pills.forEach((p, i) => {
+      x.beginPath(); x.roundRect(px, py, ws[i], ph, ph / 2);
+      if (i === 0) { x.fillStyle = '#e8552d'; x.fill(); x.fillStyle = '#ffffff'; }
+      else { x.strokeStyle = '#4a4a4a'; x.lineWidth = 2; x.stroke(); x.fillStyle = '#e6e6e6'; }
+      x.textAlign = 'center'; x.fillText(p, px + ws[i] / 2, py + ph / 2 + 9); px += ws[i] + gap;
+    });
+    return c.toDataURL('image/jpeg', 0.93);
+  }, [img, W2, H2, BG]);
+  const f = path.join(IMG, 'banner.jpg');
+  fs.writeFileSync(f, Buffer.from(url.split(',')[1], 'base64'));
+  console.log(`${path.relative(ROOT, f)}  ${(fs.statSync(f).size / 1024).toFixed(0)} KB`);
+}
+
+// GIFs: one PNG per frame, encoded with its own palette
 async function animate(page, name, s, frames, step, fps, width) {
   await setup(page, s);
   const dir = path.join(TMP, name); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
@@ -108,21 +165,18 @@ async function animate(page, name, s, frames, step, fps, width) {
   for (let i = 0; i < frames; i++) {
     await step(i);
     await page.waitForTimeout(60);
-    const bufs = await shots(page, { size: out[0] * 2, out, bgs: THEMES.map((t) => t[1]), fmt: 'image/png' });
-    THEMES.forEach((t, k) => fs.writeFileSync(path.join(dir, `f${t[0] || '_light'}_${String(i).padStart(3, '0')}.png`), bufs[k]));
+    fs.writeFileSync(path.join(dir, `f${String(i).padStart(3, '0')}.png`), await shot(page, { size: out[0] * 2, out, bgs: [STUDIO], fmt: 'image/png' }));
   }
-  for (const t of THEMES) {
-    const inp = path.join(dir, `f${t[0] || '_light'}_%03d.png`), pal = path.join(dir, `palette${t[0]}.png`), gif = path.join(IMG, `${name}${t[0]}.gif`);
-    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(fps), '-i', inp, '-vf', 'palettegen=max_colors=96:stats_mode=diff', pal]);
-    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(fps), '-i', inp, '-i', pal, '-lavfi', 'paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle', gif]);
-    console.log(`${path.relative(ROOT, gif)}  ${(fs.statSync(gif).size / 1024).toFixed(0)} KB`);
-  }
+  const inp = path.join(dir, 'f%03d.png'), pal = path.join(dir, 'palette.png'), gif = path.join(IMG, `${name}.gif`);
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(fps), '-i', inp, '-vf', 'palettegen=max_colors=96:stats_mode=diff', pal]);
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(fps), '-i', inp, '-i', pal, '-lavfi', 'paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle', gif]);
+  console.log(`${path.relative(ROOT, gif)}  ${(fs.statSync(gif).size / 1024).toFixed(0)} KB`);
 }
 
 const ease = (k) => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
 
 async function turntable(page) {
-  const N = 60, text = 'air75 split keeps typing ';
+  const N = 60, text = 'snap seventy keeps typing ';
   await animate(page, 'turntable', { view: 'asm', type: 1500, cam: [-26, 26, 0.58, 0, 0, 0] }, N, async (i) => {
     const ch = text[i % text.length], code = ch === ' ' ? 'Space' : 'Key' + ch.toUpperCase();
     await page.evaluate(([N, code]) => {
@@ -162,50 +216,6 @@ async function covers(page) {
   }, 8, 480);
 }
 
-// banner for posts: title, subtitle, pills, and the two halves apart in cream with dark modifiers and orange accents
-async function banner(page) {
-  const BG = '#141414', ORANGE = 0xe8552d, DARK = 0x2d3035, CASE = parseInt(process.env.CASE || '2b59c3', 16);
-  await setup(page, { view: 'asm', colors: [1, 0], gap: 46, type: 2500 });
-  await page.evaluate(([O, K, C]) => {
-    const A = window.__air75;
-    A.tint(['L:Tab', 'L:Caps', 'L:Shift', 'L:Ctrl', 'L:Win', 'L:Alt', 'L:Space', 'R:Space', 'R:Alt', 'R:Menu', 'R:Ctrl', 'R:Shift',
-            'R:Bksp', 'R:Del', 'R:\\', 'R:PgUp', 'R:PgDn', 'R:End', 'R:Up', 'R:Down', 'R:Left', 'R:Right'], K);
-    A.tint(['L:Esc', 'L:Fn', 'R:Enter'], O);
-    if (C) A.caseColor(C);
-  }, [ORANGE, DARK, CASE]);
-  await aim(page, [-14, 36, 0.66, 0, 16, 16]);
-  await page.waitForTimeout(400);
-  const W2 = 2000, H2 = 1125;
-  const [img] = await page.evaluate((o) => window.__air75.shots(o), { size: W2 * 2, out: [W2, H2], bgs: [BG], fmt: 'image/png' });
-  const url = await page.evaluate(async ([img, W2, H2, BG]) => {
-    await document.fonts.load('600 10px Inter'); await document.fonts.load('500 10px Inter');
-    const c = document.createElement('canvas'); c.width = W2; c.height = 1000; const x = c.getContext('2d');
-    x.fillStyle = BG; x.fillRect(0, 0, W2, 1000);
-    const g = x.createRadialGradient(W2 / 2, 520, 0, W2 / 2, 520, 1100); g.addColorStop(0, 'rgba(255,255,255,0.05)'); g.addColorStop(1, 'rgba(255,255,255,0)');
-    x.fillStyle = g; x.fillRect(0, 0, W2, 1000);
-    const im = new Image(); im.src = img; await im.decode();
-    x.globalCompositeOperation = 'lighten'; x.drawImage(im, 0, 1000 - H2 + 40); x.globalCompositeOperation = 'source-over';
-    x.textAlign = 'center'; x.textBaseline = 'alphabetic';
-    x.fillStyle = '#f2efe8'; x.font = '600 150px Inter, sans-serif'; x.fillText('Snap70', W2 / 2, 175);
-    x.fillStyle = '#a3a3a3'; x.font = '400 40px Inter, sans-serif';
-    x.fillText('Split wireless keyboard \u00b7 8 mm thin \u00b7 snaps together on magnets', W2 / 2, 255);
-    const pills = ['70 KEYS', 'ZMK', 'nRF52840', 'KS-33 LOW PROFILE', 'ANIMATED OLEDS'];
-    x.font = '600 26px Inter, sans-serif'; const ph = 50, gap = 14, padx = 22;
-    const ws = pills.map((p) => x.measureText(p).width + padx * 2), tot = ws.reduce((a, b) => a + b, 0) + gap * (pills.length - 1);
-    let px = (W2 - tot) / 2; const py = 300;
-    pills.forEach((p, i) => {
-      x.beginPath(); x.roundRect(px, py, ws[i], ph, ph / 2);
-      if (i === 0) { x.fillStyle = '#e8552d'; x.fill(); x.fillStyle = '#ffffff'; }
-      else { x.strokeStyle = '#4a4a4a'; x.lineWidth = 2; x.stroke(); x.fillStyle = '#e6e6e6'; }
-      x.textAlign = 'center'; x.fillText(p, px + ws[i] / 2, py + ph / 2 + 9); px += ws[i] + gap;
-    });
-    return c.toDataURL('image/jpeg', 0.93);
-  }, [img, W2, H2, BG]);
-  const f = path.join(IMG, process.env.OUT || 'banner.jpg');
-  fs.writeFileSync(f, Buffer.from(url.split(',')[1], 'base64'));
-  console.log(`${path.relative(ROOT, f)}  ${(fs.statSync(f).size / 1024).toFixed(0)} KB`);
-}
-
 (async () => {
   const want = process.argv.slice(2);
   const pick = (n) => !want.length || want.includes(n);
@@ -220,10 +230,14 @@ async function banner(page) {
   await page.goto('file://' + path.join(__dirname, 'index.html'));
   await page.waitForFunction(() => window.__air75 && window.__air75.shots, null, { timeout: 120000 });
   fs.mkdirSync(IMG, { recursive: true });
-  for (const [name, s] of Object.entries(SHOTS)) if (pick(name)) await still(page, name, s);
-  if (want.includes('banner')) await banner(page);
-  if (pick('split')) await split(page);
-  if (pick('covers')) await covers(page);
-  if (pick('turntable')) await turntable(page);
+  for (const [name, s] of Object.entries(SHOTS)) {
+    const tile = name.startsWith('cw_');
+    if (pick(name) || (tile && want.includes('colorways'))) await still(page, name, tile ? { ...s, dir: TMP, fmt: 'image/png' } : s);
+  }
+  if (pick('banner')) await banner(page);
+  if (want.includes('split')) await split(page);
+  if (want.includes('covers')) await covers(page);
+  if (want.includes('turntable')) await turntable(page);
   await browser.close();
+  if (!want.length || want.includes('colorways')) execFileSync('python3', [path.join(__dirname, 'compose.py')], { stdio: 'inherit' });
 })();
