@@ -16,7 +16,8 @@ INTERIOR  = 5.2     # plate underside -> base top. ASSUMED: switch pins end <=4.
 BASE_T    = 1.6
 H_TOTAL   = BASE_T + INTERIOR + PLATE_T   # 8.0, table -> top of plate
 WALL      = 1.6
-MARGIN    = 3.2     # key cell edge -> outer wall
+MARGIN    = 2.8     # key cell edge -> outer side walls (the tightest the row wires climbing the side wall allow)
+FRONT_MARGIN = 3.2  # key cell edge -> front wall (the bottom row's wire runs in front of it)
 CLOSE_R   = 6.0     # fillet radius on concave outline corners
 BAY_D     = 21.0    # back bay depth beyond the top row's cell edge (controller + long battery lie side by side here)
 CORNER_R  = 7.0     # outer corner radius of the joined keyboard
@@ -72,7 +73,7 @@ def batt_of(side): return BATT
 OLED = dict(pcb_l=38.4, pcb_w=12.4, pcb_t=1.2, glass_l=30.6, glass_w=12.0, glass_t=1.6, glass_from_pin=7.0,
             win_l=26.0, win_w=8.4, lip=0.4, frame=0.8)
 # The OLED sits in a small raised pod behind the top row, tilted toward you so you can read it while typing.
-OLED_TILT, POD_LIFT, POD_WALL, POD_REAR = 15.0, 1.0, 1.6, 1.2   # degrees; bezel front above the deck; front/side wall; rear wall
+OLED_TILT, POD_LIFT, POD_WALL, POD_REAR = 10.0, 1.0, 1.6, 1.2   # degrees; bezel front above the deck; front/side wall; rear wall
 # The pod is a separate small bezel (prints window-face-down, no supports). It sits flat on the deck on two 1.1 mm pegs,
 # over a slot that lets the module's lower half drop below the deck.
 BEZEL_R, BEZEL_END_R = 0.6, 0.8
@@ -149,7 +150,7 @@ def _global():
     top_edge = maxy
     bay = box(minx, top_edge - 1, maxx, top_edge + BAY_D - MARGIN)
     T = box(minx, miny, maxx, top_edge + BAY_D - MARGIN)    # the cells tile this rectangle exactly; a clean box avoids hairline cracks
-    OB = (minx - MARGIN, miny - MARGIN, maxx + MARGIN, top_edge + BAY_D)     # T grown by MARGIN, corners rounded
+    OB = (minx - MARGIN, miny - FRONT_MARGIN, maxx + MARGIN, top_edge + BAY_D)     # T grown by MARGIN, corners rounded
     O = Polygon(rrect_ring(OB, CORNER_R))
     xcut = {r: max(k["x0"] + k["w"] for k in allk if k["row"] == r and k["side"] == "L") * U for r in range(NROWS)}
     edges = [round(U/2 - k*U, 6) for k in range(NROWS + 1)]      # shared band edges, no hairline gaps
@@ -454,7 +455,37 @@ def base_ops(h):
     # four 8 mm rubber-foot recesses on the underside
     for fx, fy in feet(h):
         ops.append(("sub", "cyl", (fx, fy, 4.1), -0.5, 0.5))
+    ops.append(("sub", "poly", base_label(h), -0.5, BASE_LABEL_DEPTH))   # name engraved underneath
     return ops
+
+BASE_LABEL_DEPTH = 0.4
+
+def base_label(h):
+    """The half's name and side, engraved into the underside, read with the half turned over (mirrored in x), placed
+    in the biggest clear area away from the screws, feet and the edge."""
+    from shapely.affinity import scale as _sc, translate as _tr
+    plate = h["cavity"].buffer(-0.15, join_style=1)
+    keep_out = unary_union([Point(x, y).buffer(CSK_D / 2 + 1.5) for x, y in h["posts"]] +
+                           [Point(x, y).buffer(4.1 + 1.5) for x, y in feet(h)])
+    ok = plate.buffer(-3.0).difference(keep_out)
+    big = engraving("AIR75" if h["side"] == "L" else "SPLIT", size=10.0)
+    small = engraving("LEFT HALF" if h["side"] == "L" else "RIGHT HALF", size=3.6)
+    bb, sb = big.bounds, small.bounds
+    small = _tr(small, (bb[0] + bb[2]) / 2 - (sb[0] + sb[2]) / 2, bb[1] - 3.0 - sb[3])
+    label = _sc(unary_union([big, small]), -1, 1, origin=(0, 0))      # seen from below
+    lb = label.bounds
+    label = _tr(label, -(lb[0] + lb[2]) / 2, -(lb[1] + lb[3]) / 2)
+    best = None
+    ob = h["bounds"]
+    for x in np.arange(ob[0], ob[2], 2.0):
+        for y in np.arange(ob[1], ob[3], 2.0):
+            cand = _tr(label, x, y)
+            if ok.contains(cand.envelope.buffer(1.0)):
+                d = (x - (ob[0] + ob[2]) / 2) ** 2 + (y - (ob[1] + ob[3]) / 2) ** 2
+                if best is None or d < best[0]:
+                    best = (d, cand)
+    assert best is not None, f"{h['side']}: no room for the base label"
+    return best[1]
 
 def feet(h):
     """Four 8 mm feet per half, as close to the corners as the base allows, clear of screws and the battery pocket."""

@@ -71,7 +71,7 @@ for s_, h, sh in (("L", hL, shL), ("R", hR, shR)):
     y, z = P["sn"](sc, -G.OLED["lip"] - 0.8); check(f"{s_} OLED glass pocket open", not bz.contains(np.array([[wc, y, z]]))[0])
     y, z = P["sn"](sc, -3.0); check(f"{s_} OLED PCB pocket open to the bottom", not bz.contains(np.array([[o["cx"], y, max(z, G.H_TOTAL + 0.1)]]))[0])
     y, z = P["sn"](P["s0"] / 2, -0.8); check(f"{s_} bezel front wall solid", bz.contains(np.array([[o["cx"], y, z]]))[0])
-    check(f"{s_} OLED top is tilted ({G.OLED_TILT} deg, {P['z_f']:.1f} -> {P['z_b']:.1f} mm)", P["z_b"] > P["z_f"] + 3)
+    check(f"{s_} OLED top is tilted ({G.OLED_TILT} deg, {P['z_f']:.1f} -> {P['z_b']:.1f} mm)", P["z_b"] > P["z_f"] + 2)
     mb = B.run_manifold(G.bezel_ops(h)); ms = B.run_manifold(G.shell_ops(h))
     check(f"{s_} bezel and shell do not overlap ({(mb ^ ms).volume():.4f} mm3)", (mb ^ ms).volume() < 1e-6)
     check(f"{s_} bezel sits on the deck (bottom at {bz.bounds[0][2] + G.PEG_L:.2f} mm)", abs(bz.bounds[0][2] + G.PEG_L - G.H_TOTAL) < 1e-3)

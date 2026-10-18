@@ -1,14 +1,14 @@
 # Air75 Split — handwired, wireless, low-profile, 65 %
 
-An Air75-style keyboard without the function row (a 65 % layout), in two printed halves that snap together on magnets into one 311 x 119.5 mm board, and pull apart when you want a split. Handwired, no PCB, wireless (ZMK over BLE), 8 mm slim case with a 2.5 mm rounded edge all round, and a small 0.91" OLED on each half in a bezel tilted 15° toward you. Blank keycaps. **Every part prints flat with no supports.**
+An Air75-style keyboard without the function row (a 65 % layout), in two printed halves that snap together on magnets into one 310 x 119.5 mm board, and pull apart when you want a split. Handwired, no PCB, wireless (ZMK over BLE), 8 mm slim case with a 2.5 mm rounded edge all round, and a small 0.91" OLED on each half in a bezel tilted 10° toward you. Blank keycaps. **Every part prints flat with no supports.**
 
 | | Left half | Right half |
 |---|---|---|
 | Keys | 30 | 40 |
-| Outline | 141.1 x 119.5 mm | 184.2 x 119.5 mm |
+| Outline | 140.7 x 119.5 mm | 183.8 x 119.5 mm |
 | Case thickness (desk to plate top) | 8.0 mm | 8.0 mm |
 | With keycaps, on its feet | 16.4 mm | 16.4 mm |
-| OLED bezel (front / back edge) | 9.0 / 13.0 mm | same |
+| OLED bezel (front / back edge) | 9.0 / 11.7 mm | same |
 | Matrix | 5 rows x 7 cols | 5 rows x 9 cols |
 | Controller | SuperMini nRF52840 (peripheral) | SuperMini nRF52840 (central, talks to the computer) |
 | Battery | KP Original 551245, 48 x 14 x 5.1 mm | same |
@@ -42,9 +42,9 @@ Left half is everything left of the `||`. The Fn key is the last key in the left
 ## OLEDs
 
 - One 0.91" 128 x 32 SSD1306 module per half, on the SuperMini's I2C pins: **SDA = D2, SCL = D3, VCC = 3V3, GND**.
-- Each sits in a small printed bezel behind the top row, tilted 15° toward you so you can read it while typing. The bezel's front edge is 1.0 mm above the deck and its back edge 13.0 mm above the desk, still below the keycap tops (15.4 mm).
+- Each sits in a small printed bezel behind the top row, tilted 10° toward you so you can read it while typing. The bezel's front edge is 1.0 mm above the deck and its back edge 11.7 mm above the desk, still below the keycap tops (15.4 mm).
 - The bezel is its own part so the case prints without supports. It prints window-face-down (so the face around the screen gets the smooth bed finish), sits flat on the deck, and locates on two 1.1 mm pegs. The lower half of the module drops through a slot in the deck.
-- The bezel is a tapered pod: its ends slope down onto the deck at 48°, its back at 58°, with rounded corners, so it blends into the case instead of sitting on it like a box. The ends are close to the gentlest slope that still prints face-down without supports (46°); the back is as gentle as the deck behind it allows. Its back wall is solid all the way down to the deck.
+- The bezel is a tapered pod: its ends slope down onto the deck at 48°, its back at 52°, with rounded corners, so it blends into the case instead of sitting on it like a box. The ends are close to the gentlest slope that still prints face-down without supports (46°); the back is as gentle as the deck behind it allows. Its back wall is solid all the way down to the deck.
 - The glass sits in a pocket under a 0.4 mm lip with a 26.0 x 8.4 mm window. Push the module into the bezel from underneath, then put a dab of hot glue at each end of its circuit board.
 - Thread the 4 wires through the deck slot, then glue the bezel down with a thin line of CA glue (or 0.2 mm double-sided tape) around its base.
 - Remove any header pins and solder the 4 wires straight to the pads from the back of the module.
@@ -66,7 +66,7 @@ Two snap-on covers, one per half, for carrying the keyboard in a bag (`out/stl/p
 - The tabs stop above the desk, so a covered half still stands on its feet. A notch in the back skirt keeps the power switch and reset hole reachable: switch the halves off before packing them.
 - The covers only go on with the halves apart (the skirt wraps the seam side too). The right cover leaves room for the V tongue on the seam.
 - Top edge: a 45° chamfer, which prints cleanly face-down. "AIR75" and "SPLIT" are pressed 0.5 mm into the tops.
-- Print in smoke or clear PETG so the keys and screens show through: top face down, no supports, 0.2 mm layers, 4 walls (the 1.6 mm walls print solid). About 113 g for the pair.
+- Print in smoke or clear PETG so the keys and screens show through: top face down, no supports, 0.2 mm layers, 4 walls (the 1.6 mm walls print solid). About 112 g for the pair.
 - Snap fit depends on your printer. If a cover is too tight, sand the hooks lightly; if too loose, a thin strip of tape on the hook face firms it up.
 
 ## How the halves join
@@ -88,14 +88,14 @@ Two snap-on covers, one per half, for carrying the keyboard in a bag (`out/stl/p
 | Base plate | 1.6 mm | 1.6 mm |
 | Inside space (wires, diodes, battery, controller) | 5.2 mm | 6.8 mm |
 | Switch plate | 1.2 mm | **8.0 mm (case total)** |
-| OLED bezel | tilted 15° | 9.0 mm front, 13.0 mm back |
+| OLED bezel | tilted 10° | 9.0 mm front, 11.7 mm back |
 | Keycap (skirt 3.4 mm up, cap 4.0 mm tall) | | 15.4 mm |
 | Silicone feet (1.5 mm, sit 0.5 mm in a recess) | +1.0 mm | **16.4 mm on the desk** |
 
 - Below the plate: the KS-33 body reaches 2.55 mm below the plate top, its pins 4.95 mm and its centre post 5.8 mm. The post clears the base by 0.6 mm.
 - The battery is 5.1 mm thick and sits in a 0.6 mm pocket in the base, leaving 0.7 mm of air above it.
 - The SuperMini lies on 1 mm foam tape: its tallest part (USB-C) tops out at 5.0 mm, under a 6.8 mm ceiling.
-- Expected weight: about 353 g for the whole keyboard (case in PLA about 87 g). An estimate, nothing has been weighed.
+- Expected weight: about 353 g for the whole keyboard (case in PLA about 86 g). An estimate, nothing has been weighed.
 
 ## Files
 
@@ -187,7 +187,7 @@ How the shapes help:
 - **Tongue and groove** have 45° V flanks. The USB-C opening has rounded upper corners and 45° chamfered lower corners (the lower ones face down while printing). The USB-C and power slots are short flat bridges (under 12 mm).
 - `verify.py` scans every print-ready part for faces that would need support: at most 0.4 mm² of steep surface per part (rounding noise), widest flat bridge 8.2 mm (the foot recesses).
 
-Settings: PLA or PETG, 0.2 mm layers, 3 to 4 walls, 15 to 20 % infill, a smooth PEI or glass bed for a glossy top. About 87 g of filament for everything. For an even smoother look, lightly sand the rounded edges with 400 then 800 grit.
+Settings: PLA or PETG, 0.2 mm layers, 3 to 4 walls, 15 to 20 % infill, a smooth PEI or glass bed for a glossy top. About 86 g of filament for everything. For an even smoother look, lightly sand the rounded edges with 400 then 800 grit.
 
 ## Wiring
 
