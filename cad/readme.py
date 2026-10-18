@@ -3,6 +3,13 @@ import os
 import paths
 
 
+def pic(name, alt, width=None, ext="jpg"):
+    """An image that swaps to its dark version when GitHub is in dark mode."""
+    w = f' width="{width}"' if width else ""
+    return (f'<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/{name}_dark.{ext}">'
+            f'<img src="docs/images/{name}.{ext}" alt="{alt}"{w}></picture>')
+
+
 def write(g):
     G, T, P, info, keys, bL = g["G"], g["T"], g["P"], g["info"], g["keys"], g["bL"]
     TN, CV = g["TN"], g["CV"]
@@ -12,7 +19,15 @@ def write(g):
 <p align="center"><b>A {len(keys)}-key wireless keyboard that snaps together on magnets, or pulls apart into a split.</b><br>
 {G.H_TOTAL:.0f} mm case · animated OLED on each half · handwired, no PCB · every part prints with no supports</p>
 
-<p align="center"><img src="docs/images/render_hero.jpg" alt="Air75 Split, joined, in graphite with ivory keycaps"></p>
+<p align="center">
+  <img src="https://img.shields.io/badge/keys-{len(keys)}-555?style=flat-square" alt="{len(keys)} keys">
+  <img src="https://img.shields.io/badge/case-{G.H_TOTAL:.0f}%20mm-555?style=flat-square" alt="{G.H_TOTAL:.0f} mm case">
+  <img src="https://img.shields.io/badge/firmware-ZMK-555?style=flat-square" alt="ZMK firmware">
+  <img src="https://img.shields.io/badge/wireless-nRF52840%20%C3%97%202-555?style=flat-square" alt="2 x nRF52840">
+  <img src="https://img.shields.io/badge/supports-none-555?style=flat-square" alt="prints with no supports">
+</p>
+
+<p align="center">{pic("render_hero", "Air75 Split, joined, in graphite with ivory keycaps")}</p>
 
 <p align="center">
   <a href="docs/BUILD.md"><b>Build guide</b></a> ·
@@ -36,7 +51,7 @@ def write(g):
 
 Each half has a 0.91" OLED in a printed pod tilted {G.OLED_TILT:.0f}° toward you. They run custom firmware, not ZMK's stock status screen.
 
-<p align="center"><img src="docs/images/render_oled.jpg" alt="Right screen in the dark: WPM counter and spectrum bars"></p>
+<p align="center">{pic("render_oled", "Right screen in the dark: WPM counter and spectrum bars")}</p>
 
 <p align="center">
   <img src="docs/images/oled_right.gif" width="49%" alt="Right screen animation">
@@ -50,8 +65,8 @@ Each half has a 0.91" OLED in a printed pod tilted {G.OLED_TILT:.0f}° toward yo
 ## Joined or split
 
 <p align="center">
-  <img src="docs/images/render_apart.jpg" width="49%" alt="Halves pulled apart, showing the magnet seam">
-  <img src="docs/images/render_tented.jpg" width="49%" alt="Halves split and tented on magnetic wedges">
+  {pic("render_tented", "Halves split and tented on magnetic wedges", "49%")}
+  {pic("render_apart", "Halves pulled apart, showing the magnet seam", "49%")}
 </p>
 
 - The halves meet on a staircase seam that follows the key edges, held by {len(g['hL']['magnets'])} pairs of magnets with a tongue and groove to keep them level. Joined, only a hairline shows.
@@ -60,38 +75,37 @@ Each half has a 0.91" OLED in a printed pod tilted {G.OLED_TILT:.0f}° toward yo
 ## Slim
 
 <p align="center">
-  <img src="docs/images/render_slim.jpg" width="49%" alt="Low view of the case edge">
-  <img src="docs/images/render_section.jpg" width="49%" alt="Cutaway through the case">
+  {pic("render_slim", "Low view of the case edge", "49%")}
+  {pic("render_section", "Cutaway through the case", "49%")}
 </p>
 
 {G.BASE_T:.1f} mm base, {G.INTERIOR:.1f} mm inside for wires, diodes, battery and controller, {G.PLATE_T:.1f} mm switch plate: **{G.H_TOTAL:.1f} mm** in all, with a {G.EDGE_R} mm rounded edge. The battery sits in a pocket in the base and the controller lies flat beside the screen.
 
 ## Inside
 
-<p align="center"><img src="docs/images/render_exploded.jpg" alt="Exploded view: keycaps, switches, case, wiring, base"></p>
+<p align="center">{pic("render_exploded", "Exploded view with every part labelled")}</p>
 
 <p align="center">
-  <img src="docs/images/render_inside.jpg" width="49%" alt="See-through case with switches and wiring">
-  <img src="docs/images/render_wiring.jpg" width="49%" alt="Underside wiring with the base off">
+  {pic("render_inside", "See-through case with switches and wiring", "49%")}
+  {pic("render_wiring", "Underside wiring with the base off", "49%")}
 </p>
 
 Every wire and diode has a real 3D route, checked against every switch, post, screw, the battery, the controller and the walls: no collisions on either half. The [wiring sheets](docs/images/wiring_left.png) show them all, ready to solder.
 
 ## Travel covers
 
-<p align="center"><img src="docs/images/render_covers.jpg" alt="Smoke snap-on covers over both halves"></p>
+<p align="center">{pic("render_covers", "Smoke snap-on covers over both halves")}</p>
 
 Smoke PETG covers snap on over the keys for the bag. The top clears the keycaps by {CV.HEAD:.0f} mm, so nothing gets pressed and the board stays asleep. Four flexible tabs hook under the case edge.
 
 ## Colours
 
 <p align="center">
-  <img src="docs/images/render_sage.jpg" width="32%" alt="Sage case">
-  <img src="docs/images/render_slate.jpg" width="32%" alt="Slate case with sky keycaps">
-  <img src="docs/images/render_chalk.jpg" width="32%" alt="Chalk case with graphite keycaps">
+  {pic("render_sage", "Sage case", "32%")}
+  {pic("render_slate", "Slate case with sky keycaps", "32%")}
+  {pic("render_chalk", "Chalk case with graphite keycaps", "32%")}
 </p>
 
-<p align="center"><img src="docs/images/turntable.gif" alt="The keyboard turning, with the screens running"></p>
 
 ## Build one
 
@@ -104,7 +118,12 @@ The [build guide](docs/BUILD.md) has the full details: layout, Fn layer, screens
 
 To see it in 3D, download [`viewer/index.html`](viewer/index.html) and open it in a browser. You can orbit, explode it, see inside, type on it and watch the screens, try colours and tenting, and export images.
 
-{g['REPO']}
+<details>
+<summary><b>What's in the repo, and how to rebuild it</b></summary>
+
+{g['REPO'].replace('## What\'s in the repo', '').strip()}
+
+</details>
 ## Status
 
 The design is complete and checked in software: the models, wire routes, print orientation and firmware all build and pass their checks. **Nobody has built one yet**, so the first build is the real test. Print the fit-test plate first.

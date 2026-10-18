@@ -3,7 +3,15 @@
 <p align="center"><b>A 70-key wireless keyboard that snaps together on magnets, or pulls apart into a split.</b><br>
 8 mm case · animated OLED on each half · handwired, no PCB · every part prints with no supports</p>
 
-<p align="center"><img src="docs/images/render_hero.jpg" alt="Air75 Split, joined, in graphite with ivory keycaps"></p>
+<p align="center">
+  <img src="https://img.shields.io/badge/keys-70-555?style=flat-square" alt="70 keys">
+  <img src="https://img.shields.io/badge/case-8%20mm-555?style=flat-square" alt="8 mm case">
+  <img src="https://img.shields.io/badge/firmware-ZMK-555?style=flat-square" alt="ZMK firmware">
+  <img src="https://img.shields.io/badge/wireless-nRF52840%20%C3%97%202-555?style=flat-square" alt="2 x nRF52840">
+  <img src="https://img.shields.io/badge/supports-none-555?style=flat-square" alt="prints with no supports">
+</p>
+
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_hero_dark.jpg"><img src="docs/images/render_hero.jpg" alt="Air75 Split, joined, in graphite with ivory keycaps"></picture></p>
 
 <p align="center">
   <a href="docs/BUILD.md"><b>Build guide</b></a> ·
@@ -27,7 +35,7 @@
 
 Each half has a 0.91" OLED in a printed pod tilted 10° toward you. They run custom firmware, not ZMK's stock status screen.
 
-<p align="center"><img src="docs/images/render_oled.jpg" alt="Right screen in the dark: WPM counter and spectrum bars"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_oled_dark.jpg"><img src="docs/images/render_oled.jpg" alt="Right screen in the dark: WPM counter and spectrum bars"></picture></p>
 
 <p align="center">
   <img src="docs/images/oled_right.gif" width="49%" alt="Right screen animation">
@@ -41,8 +49,8 @@ Each half has a 0.91" OLED in a printed pod tilted 10° toward you. They run cus
 ## Joined or split
 
 <p align="center">
-  <img src="docs/images/render_apart.jpg" width="49%" alt="Halves pulled apart, showing the magnet seam">
-  <img src="docs/images/render_tented.jpg" width="49%" alt="Halves split and tented on magnetic wedges">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_tented_dark.jpg"><img src="docs/images/render_tented.jpg" alt="Halves split and tented on magnetic wedges" width="49%"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_apart_dark.jpg"><img src="docs/images/render_apart.jpg" alt="Halves pulled apart, showing the magnet seam" width="49%"></picture>
 </p>
 
 - The halves meet on a staircase seam that follows the key edges, held by 6 pairs of magnets with a tongue and groove to keep them level. Joined, only a hairline shows.
@@ -51,38 +59,37 @@ Each half has a 0.91" OLED in a printed pod tilted 10° toward you. They run cus
 ## Slim
 
 <p align="center">
-  <img src="docs/images/render_slim.jpg" width="49%" alt="Low view of the case edge">
-  <img src="docs/images/render_section.jpg" width="49%" alt="Cutaway through the case">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_slim_dark.jpg"><img src="docs/images/render_slim.jpg" alt="Low view of the case edge" width="49%"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_section_dark.jpg"><img src="docs/images/render_section.jpg" alt="Cutaway through the case" width="49%"></picture>
 </p>
 
 1.6 mm base, 5.2 mm inside for wires, diodes, battery and controller, 1.2 mm switch plate: **8.0 mm** in all, with a 2.5 mm rounded edge. The battery sits in a pocket in the base and the controller lies flat beside the screen.
 
 ## Inside
 
-<p align="center"><img src="docs/images/render_exploded.jpg" alt="Exploded view: keycaps, switches, case, wiring, base"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_exploded_dark.jpg"><img src="docs/images/render_exploded.jpg" alt="Exploded view with every part labelled"></picture></p>
 
 <p align="center">
-  <img src="docs/images/render_inside.jpg" width="49%" alt="See-through case with switches and wiring">
-  <img src="docs/images/render_wiring.jpg" width="49%" alt="Underside wiring with the base off">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_inside_dark.jpg"><img src="docs/images/render_inside.jpg" alt="See-through case with switches and wiring" width="49%"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_wiring_dark.jpg"><img src="docs/images/render_wiring.jpg" alt="Underside wiring with the base off" width="49%"></picture>
 </p>
 
 Every wire and diode has a real 3D route, checked against every switch, post, screw, the battery, the controller and the walls: no collisions on either half. The [wiring sheets](docs/images/wiring_left.png) show them all, ready to solder.
 
 ## Travel covers
 
-<p align="center"><img src="docs/images/render_covers.jpg" alt="Smoke snap-on covers over both halves"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_covers_dark.jpg"><img src="docs/images/render_covers.jpg" alt="Smoke snap-on covers over both halves"></picture></p>
 
 Smoke PETG covers snap on over the keys for the bag. The top clears the keycaps by 1 mm, so nothing gets pressed and the board stays asleep. Four flexible tabs hook under the case edge.
 
 ## Colours
 
 <p align="center">
-  <img src="docs/images/render_sage.jpg" width="32%" alt="Sage case">
-  <img src="docs/images/render_slate.jpg" width="32%" alt="Slate case with sky keycaps">
-  <img src="docs/images/render_chalk.jpg" width="32%" alt="Chalk case with graphite keycaps">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_sage_dark.jpg"><img src="docs/images/render_sage.jpg" alt="Sage case" width="32%"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_slate_dark.jpg"><img src="docs/images/render_slate.jpg" alt="Slate case with sky keycaps" width="32%"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_chalk_dark.jpg"><img src="docs/images/render_chalk.jpg" alt="Chalk case with graphite keycaps" width="32%"></picture>
 </p>
 
-<p align="center"><img src="docs/images/turntable.gif" alt="The keyboard turning, with the screens running"></p>
 
 ## Build one
 
@@ -95,7 +102,8 @@ The [build guide](docs/BUILD.md) has the full details: layout, Fn layer, screens
 
 To see it in 3D, download [`viewer/index.html`](viewer/index.html) and open it in a browser. You can orbit, explode it, see inside, type on it and watch the screens, try colours and tenting, and export images.
 
-## What's in the repo
+<details>
+<summary><b>What's in the repo, and how to rebuild it</b></summary>
 
 ```
 cad/                 Python that generates everything: edit geom.py or layout.py and run make
@@ -119,6 +127,7 @@ make renders    # the images in docs/images (needs node, Playwright and ffmpeg)
 
 `make` stops if a check fails. It checks every part is watertight and prints with no supports, that the STEP files match the STLs, that no wire or diode collides with anything (on both halves), and that the screens' C code and the viewer's JavaScript copy draw identical frames.
 
+</details>
 ## Status
 
 The design is complete and checked in software: the models, wire routes, print orientation and firmware all build and pass their checks. **Nobody has built one yet**, so the first build is the real test. Print the fit-test plate first.

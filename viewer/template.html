@@ -877,7 +877,7 @@ details.more[open] summary::after { content: "–"; }
     sync();
   });
   var snapR = null;
-  function snapshot() {
+  function snapshot(raw) {
     var aspect0 = canvas.clientWidth / canvas.clientHeight;
     var aspect = { 'screen': aspect0, '16:9': 16 / 9, '1:1': 1, '4:5': 4 / 5 }[snapOpt.shape];
     var long = +snapOpt.size, w = aspect >= 1 ? long : Math.round(long * aspect), h = aspect >= 1 ? Math.round(long / aspect) : long;
@@ -887,17 +887,13 @@ details.more[open] summary::after { content: "–"; }
     var cam = camera.clone(); cam.aspect = w / h;
     if (aspect < aspect0) cam.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * aspect0 / aspect));
     cam.updateProjectionMatrix(); snapR.render(scene, cam);
+    if (raw) { cam.updateMatrixWorld(true); return { src: snapR.domElement, w: w, h: h, cam: cam }; }
     var out = document.createElement('canvas'); out.width = w; out.height = h; var x = out.getContext('2d');
     var cs = getComputedStyle(document.querySelector('.app'));
     if (snapOpt.bg === 'studio') { var gr = x.createRadialGradient(w * 0.4, h * 0.3, 0, w * 0.4, h * 0.3, Math.max(w, h)); gr.addColorStop(0, cs.getPropertyValue('--sweep-a').trim() || '#f4f3f0'); gr.addColorStop(1, cs.getPropertyValue('--sweep-b').trim() || '#d9dbde'); x.fillStyle = gr; x.fillRect(0, 0, w, h); }
     if (snapOpt.bg === 'white') { x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h); }
     if (snapOpt.bg === 'black') { x.fillStyle = '#0b0c0e'; x.fillRect(0, 0, w, h); }
     x.drawImage(snapR.domElement, 0, 0);
-    if (snapOpt.out) {                                                     // scripted: downsample (supersampled renders) and pick the format
-      var o2 = document.createElement('canvas'); o2.width = snapOpt.out[0]; o2.height = snapOpt.out[1];
-      var x2 = o2.getContext('2d'); x2.imageSmoothingEnabled = true; x2.imageSmoothingQuality = 'high'; x2.drawImage(out, 0, 0, o2.width, o2.height);
-      return { url: o2.toDataURL(snapOpt.fmt || 'image/png', 0.9), w: o2.width, h: o2.height };
-    }
     return { url: out.toDataURL('image/png'), blob: new Promise(function (res) { out.toBlob(res, 'image/png'); }), w: w, h: h };
   }
   function toast(t) { var el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove('show'); }, 2200); }
@@ -971,6 +967,25 @@ details.more[open] summary::after { content: "–"; }
     }
     if (dirty) { renderer.render(scene, camera); dirty = false; }
   }
+  // labels with leader lines, for the README's exploded view: left-side labels sit at the left margin, right-side at the right
+  function drawLabels(x, r, labels, ink) {
+    var fs = Math.round(r.h * 0.024), gap = r.h * 0.075, pad = r.w * 0.035;
+    x.font = '600 ' + fs + 'px "Inter", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; x.textBaseline = 'middle';
+    ['left', 'right'].forEach(function (side) {
+      var L = labels.filter(function (l) { return l.side === side; }).map(function (l) {
+        var v = new THREE.Vector3(l.pt[0], l.pt[1], l.pt[2]).project(r.cam);
+        return { text: l.text, ax: (v.x + 1) / 2 * r.w, ay: (1 - v.y) / 2 * r.h };
+      }).sort(function (a, b) { return a.ay - b.ay; });
+      L.forEach(function (l, i) { l.y = i ? Math.max(l.ay, L[i - 1].y + gap) : l.ay; });
+      L.forEach(function (l) {
+        var tw = x.measureText(l.text).width, tx = side === 'left' ? pad : r.w - pad - tw, ex = side === 'left' ? tx + tw + fs * 0.6 : tx - fs * 0.6;
+        x.strokeStyle = ink; x.globalAlpha = 0.55; x.lineWidth = Math.max(2, r.h * 0.0016);
+        x.beginPath(); x.moveTo(ex, l.y); x.lineTo(l.ax, l.ay); x.stroke(); x.globalAlpha = 1;
+        x.fillStyle = ink; x.beginPath(); x.arc(l.ax, l.ay, r.h * 0.004, 0, Math.PI * 2); x.fill();
+        x.fillText(l.text, tx, l.y);
+      });
+    });
+  }
   // hooks for scripts (viewer/render.js uses these to make the README images)
   window.__air75 = {
     scene: scene, camera: camera, controls: controls, ui: ui, THREE: THREE,
@@ -980,7 +995,30 @@ details.more[open] summary::after { content: "–"; }
     stop: function () { anim = null; },                                     // cancel a camera flight so a script's camera stays put
     cutX: function () { var jb = joinedBounds(); return jb[0] + (jb[1] - jb[0]) * ui.cut.value / 100; },
     redraw: function () { dirty = true; },
-    snapshot: function (o) { var keep = Object.assign({}, snapOpt); Object.assign(snapOpt, o || {}); var s = snapshot(); Object.assign(snapOpt, keep); return s.url; }
+    halves: halves, D: D,
+    tilt: function (a, wedge) {                                              // tent by any angle; show one wedge (or none)
+      tentAngle = a; layout();
+      ['L', 'R'].forEach(function (s) { Object.keys(halves[s].tents).forEach(function (k) { halves[s].tents[k].visible = +k === wedge; }); });
+      dirty = true;
+    },
+    point: function (side, part, f) {                                        // a world point at fractions f of a part's bounding box
+      scene.updateMatrixWorld(true);
+      var b = new THREE.Box3().setFromObject(halves[side][part]), v = new THREE.Vector3();
+      return [b.min.x + (b.max.x - b.min.x) * f[0], b.min.y + (b.max.y - b.min.y) * f[1], b.min.z + (b.max.z - b.min.z) * f[2]];
+    },
+    // Render once, then composite over each background colour. o: { size, out: [w, h], bgs: [...], fmt, labels: [{ text, pt, side }], ink: [...] }
+    shots: function (o) {
+      var keep = Object.assign({}, snapOpt); Object.assign(snapOpt, { shape: '16:9', size: String(o.size) });
+      var r = snapshot(true); Object.assign(snapOpt, keep);
+      return o.bgs.map(function (bg, i) {
+        var c = document.createElement('canvas'); c.width = r.w; c.height = r.h; var x = c.getContext('2d');
+        x.fillStyle = bg; x.fillRect(0, 0, r.w, r.h); x.drawImage(r.src, 0, 0);
+        if (o.labels) drawLabels(x, r, o.labels, o.ink[i]);
+        var o2 = document.createElement('canvas'); o2.width = o.out[0]; o2.height = o.out[1];
+        var x2 = o2.getContext('2d'); x2.imageSmoothingEnabled = true; x2.imageSmoothingQuality = 'high'; x2.drawImage(c, 0, 0, o2.width, o2.height);
+        return o2.toDataURL(o.fmt || 'image/png', 0.92);
+      });
+    }
   };
   resize(); layout(); visibility(); setView('asm'); setCam('iso', true);
   $('loading').classList.add('done');
