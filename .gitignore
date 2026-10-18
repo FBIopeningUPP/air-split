@@ -1,4 +1,4 @@
 __pycache__/
 *.pyc
-case/geom_v2_backup.py
 node_modules/
+build/

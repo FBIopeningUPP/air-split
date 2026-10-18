@@ -1,4 +1,0 @@
-name: zmk-keyboard-air75-split
-build:
-  settings:
-    board_root: .

@@ -1,233 +1,133 @@
-# Air75 Split — handwired, wireless, low-profile, 65 %
+<h1 align="center">Air75 Split</h1>
 
-An Air75-style keyboard without the function row (a 65 % layout), in two printed halves that snap together on magnets into one 311 x 119.5 mm board, and pull apart when you want a split. Handwired, no PCB, wireless (ZMK over BLE), 8 mm slim case with a 2.5 mm rounded edge all round, and a small 0.91" OLED on each half in a bezel tilted 15° toward you. Blank keycaps. **Every part prints flat with no supports.**
+<p align="center"><b>A 70-key wireless keyboard that snaps together on magnets, or pulls apart into a split.</b><br>
+8 mm case · animated OLED on each half · handwired, no PCB · every part prints with no supports</p>
 
-| | Left half | Right half |
-|---|---|---|
-| Keys | 30 | 40 |
-| Outline | 141.1 x 119.5 mm | 184.2 x 119.5 mm |
-| Case thickness (desk to plate top) | 8.0 mm | 8.0 mm |
-| With keycaps, on its feet | 16.4 mm | 16.4 mm |
-| OLED bezel (front / back edge) | 9.0 / 13.0 mm | same |
-| Matrix | 5 rows x 7 cols | 5 rows x 9 cols |
-| Controller | SuperMini nRF52840 (peripheral) | SuperMini nRF52840 (central, talks to the computer) |
-| Battery | KP Original 551245, 48 x 14 x 5.1 mm | same |
-| Display | 0.91" 128 x 32 OLED (SSD1306, I2C) | same |
+<p align="center">
+  <img src="https://img.shields.io/badge/keys-70-555?style=flat-square" alt="70 keys">
+  <img src="https://img.shields.io/badge/case-8%20mm-555?style=flat-square" alt="8 mm case">
+  <img src="https://img.shields.io/badge/firmware-ZMK-555?style=flat-square" alt="ZMK firmware">
+  <img src="https://img.shields.io/badge/wireless-nRF52840%20%C3%97%202-555?style=flat-square" alt="2 x nRF52840">
+  <img src="https://img.shields.io/badge/supports-none-555?style=flat-square" alt="prints with no supports">
+</p>
 
-Total 70 keys: the Air75 minus its function row, with the 6.25u spacebar replaced by two 2u spaces (one per half) and an extra 1.25u Fn key on the left. Esc sits where ` was and Del sits beside Backspace; everything from the F-row lives on the Fn layer. Behind the top row is a 21 mm back bay with the controller, the OLED and the battery side by side.
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_hero_dark.jpg"><img src="docs/images/render_hero.jpg" alt="Air75 Split, joined, in graphite with ivory keycaps"></picture></p>
 
-```
-|Esc| 1 | 2 | 3 | 4 | 5 | 6 |  ||  | 7 | 8 | 9 | 0 | - | = |  Bksp |Del|
-| Tab | Q | W | E | R | T |  ||  | Y | U | I | O | P | [ | ] |  \  |PgU|
-| Caps | A | S | D | F | G |  ||  | H | J | K | L | ; | ' | Enter  |PgD|
-| Shift  | Z | X | C | V | B |  ||  | N | M | , | . | / |Shift | Up|End|
-|Ctrl|Win |Alt | Space | Fn |  ||  | Space | Alt |Menu|Ctrl|Lef|Dow|Rig|
-```
+<p align="center">
+  <a href="docs/BUILD.md"><b>Build guide</b></a> ·
+  <a href="models/print"><b>Print files</b></a> ·
+  <a href="firmware"><b>Firmware</b></a> ·
+  <a href="viewer/index.html"><b>3D viewer</b></a> ·
+  <a href="bom/index.html"><b>Parts list</b></a>
+</p>
 
-Left half is everything left of the `||`. The Fn key is the last key in the left half's bottom row.
-
-## Fn layer
-
-| Fn + | Does | Fn + | Does |
-|---|---|---|---|
-| Esc | ` | 1 … = | F1 … F12 |
-| Backspace | Delete | Del | Insert |
-| PgUp | Home | End | Print Screen |
-| Q W E R | Bluetooth profile 1-4 | T | clear current profile |
-| Y | USB output | U | Bluetooth output |
-| [ / ] | brightness down / up | P | play / pause |
-| M | mute | Up / Down | volume up / down |
-| Left / Right | previous / next track | Backslash | bootloader |
-
-## OLEDs
-
-- One 0.91" 128 x 32 SSD1306 module per half, on the SuperMini's I2C pins: **SDA = D2, SCL = D3, VCC = 3V3, GND**.
-- Each sits in a small printed bezel behind the top row, tilted 15° toward you so you can read it while typing. The bezel's front edge is 1.0 mm above the deck and its back edge 13.0 mm above the desk, still below the keycap tops (15.4 mm).
-- The bezel is its own part so the case prints without supports. It prints window-face-down (so the face around the screen gets the smooth bed finish), sits flat on the deck, and locates on two 1.1 mm pegs. The lower half of the module drops through a slot in the deck.
-- The glass sits in a pocket under a 0.4 mm lip with a 26.0 x 8.4 mm window. Push the module into the bezel from underneath, then put a dab of hot glue at each end of its circuit board.
-- Thread the 4 wires through the deck slot, then glue the bezel down with a thin line of CA glue (or 0.2 mm double-sided tape) around its base.
-- Remove any header pins and solder the 4 wires straight to the pads from the back of the module.
-- The right half (central) shows the Bluetooth profile, battery, layer and a WPM graph; the left half shows its battery and the link to the right half. ZMK turns the screens off when the keyboard sleeps.
-
-## How the halves join
-
-- The seam is a staircase that follows key-cell edges, so no switch is cut. Gap is 0.2 mm.
-- 6 magnet pockets per half (5 x 1 mm N52 discs, pockets 5.2 mm wide, 1.1 mm deep), including one in the back bay. They face each other across the seam.
-- A V-shaped tongue on the right half slides into a matching groove on the left half, about 6 to 7 mm above the desk. It stops the halves stepping up or down against each other. Its 45° flanks print cleanly without supports.
-- The 2.5 mm rounded edge runs straight across the seam and both seam faces are flat, so joined, the halves read as one piece with just a hairline between them.
-- To join: line the halves up side by side, then push them together horizontally.
-- **Magnet polarity:** glue the magnets so each pair attracts. Stack them on the bench first and mark the faces with a pen before gluing.
-- Joined, the halves behave as one board, but each is still its own wireless unit (two batteries, two controllers).
-
-## Thickness
-
-`out/thickness_profile.png` is a true-scale section with every layer dimensioned. Heights are from the desk:
-
-| Layer | Thickness | Top at |
-|---|---|---|
-| Base plate | 1.6 mm | 1.6 mm |
-| Inside space (wires, diodes, battery, controller) | 5.2 mm | 6.8 mm |
-| Switch plate | 1.2 mm | **8.0 mm (case total)** |
-| OLED bezel | tilted 15° | 9.0 mm front, 13.0 mm back |
-| Keycap (skirt 3.4 mm up, cap 4.0 mm tall) | | 15.4 mm |
-| Silicone feet (1.5 mm, sit 0.5 mm in a recess) | +1.0 mm | **16.4 mm on the desk** |
-
-- Below the plate: the KS-33 body reaches 2.55 mm below the plate top, its pins 4.95 mm and its centre post 5.8 mm. The post clears the base by 0.6 mm.
-- The battery is 5.1 mm thick and sits in a 0.6 mm pocket in the base, leaving 0.7 mm of air above it.
-- The SuperMini lies on 1 mm foam tape: its tallest part (USB-C) tops out at 5.0 mm, under a 6.8 mm ceiling.
-- Expected weight: about 353 g for the whole keyboard (case in PLA about 87 g). An estimate, nothing has been weighed.
-
-## Files
-
-```
-out/stl/            STLs in their assembled position: left/right shell, base, OLED bezel, fit_test_plate
-out/stl/print_ready/  the same parts already turned the way they go on the bed: open in the slicer and print
-out/step/           same parts as STEP
-out/*.png           top views, thickness section, wiring sheets (every wire and diode, real routes)
-out/wiring.json     3D route of every wire and diode (used by the viewer)
-case/               Python that generates everything. Edit geom.py or layout.py, re-run
-zmk-config/         firmware repo: push to GitHub, Actions builds the .uf2 files
-viewer/index.html   the 3D studio viewer
-bom/index.html      the interactive parts list
-```
-
-Regenerate after changing anything:
-
-```
-cd case
-python3 gen_zmk.py && python3 build.py && python3 verify.py && python3 check_step.py   # verify includes the support check
-python3 routing.py     # wire routes + clearance report (should say 0 problems on both halves)
-python3 drawings.py && python3 wiring.py && python3 profile.py && python3 guide.py
-cd ../viewer && python3 build_viewer.py
-```
-
-## Before you print: check these
-
-The switch numbers come from Gateron's KS-33 STEP model, but the stabilizers and printer tolerance are still unknowns. Print `out/stl/fit_test_plate.stl` first (one 1u hole, one 2u hole with stabilizer cutouts, about 15 minutes).
-
-1. **Switch hole** is 14.0 mm square. The switch should click in and hold. If your printer prints holes small, add 0.1 to `SW_HOLE`.
-2. **Stabilizer cutouts** use the standard MX plate-mount shape. Gateron's low-profile stabilizers may differ.
-3. **Battery:** KP Original 551245 from Zbotic (listed in stock), 48 x 14 x 5.1 mm, 480 mAh listed. Measure it including its protection board: it must be 48 mm or shorter and 5.1 mm or thinner. Real capacity is likely 300 to 400 mAh.
-4. **SuperMini** is modelled at 33 x 18 x 1.6 mm with a mid-mount USB-C, from its pinout card.
-5. **USB-C slot** is 11.0 x 6.2 mm so the cable's plastic head can enter. Very chunky cable heads may not fit.
-
-## Parts (both halves)
-
-| Qty | Part | Notes |
-|---|---|---|
-| 2 | SuperMini nRF52840 | nice!nano-compatible, built-in LiPo charger |
-| 70 (+5 spare) | Gateron KS-33 low-profile 2.0 switches | Meckeys sells packs of 10 (Red is the quietest of their three) |
-| 5 | Gateron low-profile plate-mount 2u stabilizers | Bksp, Enter, left Shift, both spaces |
-| 70 | 1N4148 diodes, DO-35 | |
-| 1 set | Blank low-profile keycaps for Gateron LP | sizes below; or print them |
-| 2 | 0.91" 128 x 32 OLED, SSD1306, I2C | GND VCC SCL SDA |
-| 2 | KP Original 551245 LiPo | 48 x 14 x 5.1 mm, Zbotic |
-| 12 | N52 disc magnets, 5 x 1 mm | 6 per half |
-| 2 | Slide switch (SS-12D10 class) | power |
-| 2 | Right-angle tactile switch | reset |
-| 18 | M2 x 4 brass heat-set inserts | 8 left, 10 right |
-| 18 (+4) | M2 x 5 countersunk screws | |
-| 1 | 30 AWG silicone wire | 7.7 m routed, buy 10 m in 4+ colours |
-| 8 | 8 mm round silicone feet, 1.5 mm thick | 4 per half |
-| 1 | 1 mm double-sided foam tape, Kapton tape, hot glue, CA glue | controller, OLED, battery, bezel |
-
-Keycaps needed:
-
-| Size | Count |
+| **Layout** | 70 keys, 65 % (an Air75 without its function row), 30 left + 40 right |
 |---|---|
-| 1u | 54 |
-| 1.25u | 6 |
-| 1.5u | 3 |
-| 1.75u | 2 |
-| 2u | 3 |
-| 2.25u | 2 |
+| **Size** | 310 × 119.5 mm joined |
+| **Thickness** | 8.0 mm case, 16.4 mm on the desk with keycaps |
+| **Switches** | Gateron KS-33 low profile 2.0 |
+| **Brains** | 2 × SuperMini nRF52840, ZMK over Bluetooth, right half talks to the computer |
+| **Screens** | 2 × 0.91" 128 × 32 OLED with custom animated firmware |
+| **Power** | 2 × 3.7 V LiPo, 48 × 14 × 5.1 mm, one per half |
+| **Extras** | snap-on travel covers, magnetic tenting wedges (5° / 10° / 15°) |
 
-You need two 2u keycaps for the spacebars plus one for Backspace. Low-profile sets usually include one or two 2u keys, so check before buying, or print them.
+## The screens
 
-## Print
+Each half has a 0.91" OLED in a printed pod tilted 10° toward you. They run custom firmware, not ZMK's stock status screen.
 
-Every part prints with **no supports**. Open the files in `out/stl/print_ready/`; they are already turned the right way up.
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_oled_dark.jpg"><img src="docs/images/render_oled.jpg" alt="Right screen in the dark: WPM counter and spectrum bars"></picture></p>
 
-| Part | On the bed | Why |
-|---|---|---|
-| Shell (x2) | switch plate face down | the plate gets the smooth bed finish; walls, posts and the seam grow straight up |
-| Base (x2) | flat, outside face down | foot recesses and countersinks bridge or slope at 45° or less |
-| OLED bezel (x2) | window face down | the face around the screen gets the bed finish; the pegs end up on top |
-| Fit test plate | flat | |
+<p align="center">
+  <img src="docs/images/oled_right.gif" width="49%" alt="Right screen animation">
+  <img src="docs/images/oled_left.gif" width="49%" alt="Left screen animation">
+</p>
 
-How the shapes help:
+- **Right:** spectrum bars that jump where you type, a big seven-segment WPM counter, Bluetooth profile, layer and both batteries.
+- **Left:** a live map of its 30 keys with ripples from every press, the link to the right half and its battery.
+- The screens only redraw while something moves, and switch off when the keyboard sleeps. The 3D viewer runs the same drawing code: a check runs the C and the JavaScript on one typing session and compares every frame byte for byte.
 
-- **Rounded edges** (2.5 mm top, 0.8 mm bottom) are "teardrop" rounds: a true circle, but never steeper than 45° next to the face that sits on the bed, so they print face-down without drooping. They are modelled in 0.2 mm steps, so print at **0.2 mm layers** (or 0.1) for the smoothest result.
-- **Magnet pockets and the reset hole** are teardrop-shaped holes, so their tops (which face down in the printer) never overhang more than 45°.
-- **Tongue and groove** have 45° V flanks. The USB-C and power slots are short flat bridges (under 12 mm).
-- `verify.py` scans every print-ready part for faces that would need support: at most 0.4 mm² of steep surface per part (rounding noise), widest flat bridge 8.2 mm (the foot recesses).
+## Joined or split
 
-Settings: PLA or PETG, 0.2 mm layers, 3 to 4 walls, 15 to 20 % infill, a smooth PEI or glass bed for a glossy top. About 87 g of filament for everything. For an even smoother look, lightly sand the rounded edges with 400 then 800 grit.
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_tented_dark.jpg"><img src="docs/images/render_tented.jpg" alt="Halves split and tented on magnetic wedges" width="49%"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_apart_dark.jpg"><img src="docs/images/render_apart.jpg" alt="Halves pulled apart, showing the magnet seam" width="49%"></picture>
+</p>
 
-## Wiring
+- The halves meet on a staircase seam that follows the key edges, held by 6 pairs of magnets with a tongue and groove to keep them level. Joined, only a hairline shows.
+- Split them and clip on a magnetic tenting wedge: 5° / 10° / 15°. Each wedge sockets over the rubber feet so it can't slide, and its magnets are hidden in the base.
 
-Every wire and diode has a real 3D route (`case/routing.py`), checked against every switch body, centre post, pin, stabilizer, screw post, the battery, the controller, the OLED and the case walls: **0 clearance problems** on both halves.
+## Slim
 
-- Sheets: `out/wiring_left.png`, `out/wiring_right.png` show each half from underneath with every wire and diode, and the SuperMini with every pad named. The viewer's **Wiring** view shows the same in 3D; hover a wire for its name.
-- Mount every switch with its two pins toward you. The column wire goes to the left pin (seen from the top); the other pin goes to the diode, band toward the row wire. Firmware is `col2row`.
-- Rows climb the outer side wall, then run behind the top row to the controller. Columns leave their top-row key and run behind the top row too.
-- Power, reset and OLED wires run under the OLED, then over the controller to its pads.
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_slim_dark.jpg"><img src="docs/images/render_slim.jpg" alt="Low view of the case edge" width="49%"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_section_dark.jpg"><img src="docs/images/render_section.jpg" alt="Cutaway through the case" width="49%"></picture>
+</p>
 
-Rows (both halves are the same):
+1.6 mm base, 5.2 mm inside for wires, diodes, battery and controller, 1.2 mm switch plate: **8.0 mm** in all, with a 2.5 mm rounded edge. The battery sits in a pocket in the base and the controller lies flat beside the screen.
 
-| Row | Pin |
-|---|---|
-| R0 | D21 |
-| R1 | D20 |
-| R2 | D19 |
-| R3 | D18 |
-| R4 | D15 |
+## Inside
 
-Left half columns:
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_exploded_dark.jpg"><img src="docs/images/render_exploded.jpg" alt="Exploded view with every part labelled"></picture></p>
 
-| Column | Pin |
-|---|---|
-| C0 | D4 |
-| C1 | D5 |
-| C2 | D6 |
-| C3 | D7 |
-| C4 | D8 |
-| C5 | D9 |
-| C6 | D1 |
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_inside_dark.jpg"><img src="docs/images/render_inside.jpg" alt="See-through case with switches and wiring" width="49%"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_wiring_dark.jpg"><img src="docs/images/render_wiring.jpg" alt="Underside wiring with the base off" width="49%"></picture>
+</p>
 
-Right half columns:
+Every wire and diode has a real 3D route, checked against every switch, post, screw, the battery, the controller and the walls: no collisions on either half. The [wiring sheets](docs/images/wiring_left.png) show them all, ready to solder.
 
-| Column | Pin |
-|---|---|
-| C0 | D4 |
-| C1 | D5 |
-| C2 | D6 |
-| C3 | D7 |
-| C4 | D8 |
-| C5 | D9 |
-| C6 | D1 |
-| C7 | D0 |
-| C8 | DP1.01 |
+## Travel covers
 
-Battery + goes through the power switch to **B+**; battery − to the **GND** on the right row. Reset button between **RST** and a **GND** on the left row.
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_covers_dark.jpg"><img src="docs/images/render_covers.jpg" alt="Smoke snap-on covers over both halves"></picture></p>
 
-## Firmware
+Smoke PETG covers snap on over the keys for the bag. The top clears the keycaps by 1 mm, so nothing gets pressed and the board stays asleep. Four flexible tabs hook under the case edge.
 
-1. Create a GitHub repo from `zmk-config/` and push. Actions builds `air75_split_left`, `air75_split_right` and `settings_reset`.
-2. Double-tap reset on a SuperMini to get its USB drive, then drop the `.uf2` on it.
-3. Flash `settings_reset` to both halves first, then the left and right firmware.
-4. Power both on. They pair to each other; then pair the keyboard with your computer.
+## Colours
 
-- The **right** half is the central (bigger job, talks to the computer) and runs its radio at +8 dBm; the left runs at 0 dBm.
-- The board target is `nice_nano_v2`. I have not run the ZMK build here: the devicetree compiles against stubbed headers and the matrix, layout and keymap each have 70 entries, but GitHub Actions is the real test.
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_sage_dark.jpg"><img src="docs/images/render_sage.jpg" alt="Sage case" width="32%"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_slate_dark.jpg"><img src="docs/images/render_slate.jpg" alt="Slate case with sky keycaps" width="32%"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/render_chalk_dark.jpg"><img src="docs/images/render_chalk.jpg" alt="Chalk case with graphite keycaps" width="32%"></picture>
+</p>
 
-## Assembly
 
-1. Fit test, then print the case.
-2. Press the 18 heat-set inserts into the post holes from below.
-3. Clip the 5 stabilizers into the plate, then all switches.
-4. Wire the matrix. Test each key.
-5. Fit each OLED into its bezel (hot glue), thread its wires through the deck slot and glue the bezel onto its pegs, the SuperMini on foam tape with its USB-C in the side wall, and the battery in its pocket. Solder battery + through the slide switch to B+, battery − to GND. The bar next to the power slot is ON (slide toward the controller), the dot is OFF.
-6. Flash, test, then close the base with the countersunk screws.
-7. Glue the magnets into the seam pockets (polarity check first), then slide the halves together.
-8. Stick the 8 mm feet into the recesses.
+## Build one
+
+1. **Print:** everything in [`models/print/`](models/print) is already the right way up and needs no supports. Start with the fit-test plate.
+2. **Buy:** the [parts list](bom/index.html) (about 20 parts, all common), or the table in the [build guide](docs/BUILD.md#parts-both-halves).
+3. **Wire:** follow the [wiring sheets](docs/images/wiring_left.png): 7.7 m of 30 AWG wire and 70 diodes.
+4. **Flash:** drop the ready-built `.uf2` files from [`firmware/`](firmware) on each half.
+
+The [build guide](docs/BUILD.md) has the full details: layout, Fn layer, screens, covers, tenting, thickness, printing, wiring pins, firmware and assembly.
+
+To see it in 3D, download [`viewer/index.html`](viewer/index.html) and open it in a browser. You can orbit, explode it, see inside, type on it and watch the screens, try colours and tenting, and export images.
+
+<details>
+<summary><b>What's in the repo, and how to rebuild it</b></summary>
+
+```
+cad/                 Python that generates everything: edit geom.py or layout.py and run make
+models/print/        every part, already turned the way it goes on the bed: open in the slicer and print
+models/stl/          the same parts in their assembled position
+models/step/         the same parts as STEP, for any CAD program
+firmware/*.uf2       ready-built firmware: left half, right half, settings reset
+firmware/zmk-config/ firmware source (ZMK v0.3): keymap, shield, the animated screens in src/air75_oled/
+viewer/index.html    the 3D viewer (open it in a browser); viewer/render.js makes the images in docs/images/
+bom/index.html       the interactive parts list
+docs/BUILD.md        the full build guide
+docs/images/         renders, OLED previews, top views, wiring sheets, thickness section
+```
+
+Rebuild everything after a change (Python 3.11+, `pip install -r requirements.txt`):
+
+```
+make            # models, checks, drawings, docs and the viewer (about a minute)
+make renders    # the images in docs/images (needs node, Playwright and ffmpeg)
+```
+
+`make` stops if a check fails. It checks every part is watertight and prints with no supports, that the STEP files match the STLs, that no wire or diode collides with anything (on both halves), and that the screens' C code and the viewer's JavaScript copy draw identical frames.
+
+</details>
+## Status
+
+The design is complete and checked in software: the models, wire routes, print orientation and firmware all build and pass their checks. **Nobody has built one yet**, so the first build is the real test. Print the fit-test plate first.
