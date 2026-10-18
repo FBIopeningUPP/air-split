@@ -1,8 +1,8 @@
-# Air75 Split: build guide
+# Snap70: build guide
 
 [← Back to the overview](../README.md)
 
-An Air75-style keyboard without the function row (a 65 % layout), in two printed halves that snap together on magnets into one 310 x 119.5 mm board, and pull apart when you want a split. Handwired, no PCB, wireless (ZMK over BLE), 8 mm slim case with a 2.5 mm rounded edge all round, and a small 0.91" OLED on each half in a bezel tilted 10° toward you. Blank keycaps. **Every part prints flat with no supports.**
+Snap70 is an Air75-style keyboard without the function row (a 65 % layout), in two printed halves that snap together on magnets into one 310 x 119.5 mm board, and pull apart when you want a split. Handwired, no PCB, wireless (ZMK over BLE), 8 mm slim case with a 2.5 mm rounded edge all round, and a small 0.91" OLED on each half in a bezel tilted 10° toward you. Blank keycaps. **Every part prints flat with no supports.**
 
 | | Left half | Right half |
 |---|---|---|

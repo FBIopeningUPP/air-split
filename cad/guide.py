@@ -64,11 +64,11 @@ def pin_table(pins, n):
     return "\n".join(f"| C{i} | D{pins[i]} |" for i in range(n))
 row_table = "\n".join(f"| R{i} | D{p} |" for i, p in enumerate(ROW_PINS))
 
-md = f"""# Air75 Split: build guide
+md = f"""# Snap70: build guide
 
 [← Back to the overview](../README.md)
 
-An Air75-style keyboard without the function row (a 65 % layout), in two printed halves that snap together on magnets into one {JW:.0f} x {bL[3]-bL[1]:.1f} mm board, and pull apart when you want a split. Handwired, no PCB, wireless (ZMK over BLE), 8 mm slim case with a {G.EDGE_R} mm rounded edge all round, and a small 0.91" OLED on each half in a bezel tilted {G.OLED_TILT:.0f}° toward you. Blank keycaps. **Every part prints flat with no supports.**
+Snap70 is an Air75-style keyboard without the function row (a 65 % layout), in two printed halves that snap together on magnets into one {JW:.0f} x {bL[3]-bL[1]:.1f} mm board, and pull apart when you want a split. Handwired, no PCB, wireless (ZMK over BLE), 8 mm slim case with a {G.EDGE_R} mm rounded edge all round, and a small 0.91" OLED on each half in a bezel tilted {G.OLED_TILT:.0f}° toward you. Blank keycaps. **Every part prints flat with no supports.**
 
 | | Left half | Right half |
 |---|---|---|

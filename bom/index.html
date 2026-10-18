@@ -1,4 +1,4 @@
-<title>Air75 Split Parts List</title>
+<title>Snap70 Parts List</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
@@ -101,7 +101,7 @@ textarea.copyfallback { width: 100%; min-height: 160px; font: 12px var(--mono); 
 
 <div class="wrap">
   <header>
-    <h1>Air75 <span>Split</span> parts</h1>
+    <h1>Snap<span>70</span> parts</h1>
     <p class="sub">Everything for both halves of the 70-key (65 %) wireless Air75 split: a smooth 8.0 mm case that prints with no supports (16.4 mm with keycaps on its feet), Gateron KS-33 switches, printed keycaps, two SuperMini nRF52840 boards, two 0.91" OLEDs and two KP 551245 batteries. Tick parts off as they arrive. Prices you type are kept in this browser.</p>
   </header>
 
@@ -263,7 +263,7 @@ function totals() {
 
 function shoppingList() {
   const left = PARTS.filter((p) => counted(p) && !state.have[p.id] && unit(p) > 0);
-  const lines = ["Air75 Split: still to buy", ""];
+  const lines = ["Snap70: still to buy", ""];
   for (const g of GROUPS) {
     const items = left.filter((p) => p.g === g);
     if (!items.length) continue;
