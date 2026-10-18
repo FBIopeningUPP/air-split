@@ -76,7 +76,7 @@ Left half is everything left of the `||`. The Fn key is the last key in the left
 - The glass sits in a pocket under a {G.OLED['lip']} mm lip with a {G.OLED['win_l']} x {G.OLED['win_w']} mm window. Push the module into the bezel from underneath, then put a dab of hot glue at each end of its circuit board.
 - Thread the 4 wires through the deck slot, then glue the bezel down with a thin line of CA glue (or 0.2 mm double-sided tape) around its base.
 - Remove any header pins and solder the 4 wires straight to the pads from the back of the module.
-- The right half (central) shows the Bluetooth profile, battery, layer and a WPM graph; the left half shows its battery and the link to the right half. ZMK turns the screens off when the keyboard sleeps.
+- The right half (central) shows its battery, the Bluetooth profile, the active layer and a words-per-minute counter; the left half shows its battery and the link to the right half. ZMK turns the screens off when the keyboard sleeps.
 
 ## How the halves join
 
@@ -115,7 +115,8 @@ out/step/           same parts as STEP
 out/*.png           top views, thickness section, wiring sheets (every wire and diode, real routes)
 out/wiring.json     3D route of every wire and diode (used by the viewer)
 case/               Python that generates everything. Edit geom.py or layout.py, re-run
-zmk-config/         firmware repo: push to GitHub, Actions builds the .uf2 files
+firmware/           ready-built .uf2 files for both halves and settings_reset
+zmk-config/         firmware source: push to GitHub, Actions builds the .uf2 files
 viewer/index.html   the 3D studio viewer
 bom/index.html      the interactive parts list
 ```
@@ -181,7 +182,7 @@ Every part prints with **no supports**. Open the files in `out/stl/print_ready/`
 
 How the shapes help:
 
-- **Rounded edges** ({G.EDGE_R} mm top, {G.EDGE_RB} mm bottom) are "teardrop" rounds: a true circle, but never steeper than 45° next to the face that sits on the bed, so they print face-down without drooping. They are modelled in 0.2 mm steps, so print at **0.2 mm layers** (or 0.1) for the smoothest result.
+- **Rounded edges** ({G.EDGE_R} mm top, {G.EDGE_RB} mm bottom) are "teardrop" rounds: a true circle, but never steeper than 45° next to the face that sits on the bed, so they print face-down without drooping. They are modelled as true curves (one ring every 3° of arc, real curved faces in the STEP files), so the only steps left are your printer's layers: 0.2 mm is fine, 0.12 mm or 0.1 mm is smoother.
 - **Magnet pockets and the reset hole** are teardrop-shaped holes, so their tops (which face down in the printer) never overhang more than 45°.
 - **Tongue and groove** have 45° V flanks. The USB-C and power slots are short flat bridges (under 12 mm).
 - `verify.py` scans every print-ready part for faces that would need support: at most 0.4 mm² of steep surface per part (rounding noise), widest flat bridge 8.2 mm (the foot recesses).
@@ -219,13 +220,16 @@ Battery + goes through the power switch to **B+**; battery − to the **GND** on
 
 ## Firmware
 
-1. Create a GitHub repo from `zmk-config/` and push. Actions builds `air75_split_left`, `air75_split_right` and `settings_reset`.
-2. Double-tap reset on a SuperMini to get its USB drive, then drop the `.uf2` on it.
-3. Flash `settings_reset` to both halves first, then the left and right firmware.
-4. Power both on. They pair to each other; then pair the keyboard with your computer.
+Ready-built firmware is in `firmware/`: `air75_split_left.uf2`, `air75_split_right.uf2` and `settings_reset.uf2`, compiled from `zmk-config/` against ZMK v0.3 for the `nice_nano_v2` board (left: 252 KB of flash, right: 295 KB; both well under the 792 KB limit).
+
+1. Double-tap reset on a SuperMini to get its USB drive, then drop a `.uf2` on it.
+2. Flash `settings_reset` to both halves first, then `air75_split_left` to the left half and `air75_split_right` to the right.
+3. Power both on. They pair to each other; then pair the keyboard with your computer.
+
+To change the keymap and rebuild: create a GitHub repo from `zmk-config/` and push. Actions builds the same three files.
 
 - The **right** half is the central (bigger job, talks to the computer) and runs its radio at +8 dBm; the left runs at 0 dBm.
-- The board target is `nice_nano_v2`. I have not run the ZMK build here: the devicetree compiles against stubbed headers and the matrix, layout and keymap each have {len(keys)} entries, but GitHub Actions is the real test.
+- The firmware compiles cleanly, but it has not been tried on a real keyboard yet.
 
 ## Assembly
 

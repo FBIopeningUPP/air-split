@@ -1,6 +1,6 @@
 #include "air75_split.dtsi"
 
-/* Left half: 7 columns on D2..D8 */
+/* Left half: 7 columns on D4, D5, D6, D7, D8, D9, D1 */
 &kscan0 {
     col-gpios
         = <&pro_micro 4 GPIO_ACTIVE_HIGH>

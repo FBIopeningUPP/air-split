@@ -15,7 +15,29 @@ def polys(p):
     return list(p.geoms) if isinstance(p, MultiPolygon) else [p]
 
 # ---------------- manifold backend ----------------
+def skin_mesh(arg):
+    """Vertices and triangles of a lofted rounded-rectangle solid: one ring per (z, inset) in arg['prof']."""
+    rings = [np.array(G.rrect_ring(arg["b"], arg["r"], d), dtype=float) for _, d in arg["prof"]]
+    n, k = len(rings[0]), len(rings)
+    V = np.vstack([np.column_stack([r, np.full(n, z)]) for r, (z, _) in zip(rings, arg["prof"])])
+    cb, ct = rings[0].mean(axis=0), rings[-1].mean(axis=0)
+    V = np.vstack([V, [[cb[0], cb[1], arg["prof"][0][0]], [ct[0], ct[1], arg["prof"][-1][0]]]])
+    ib, it = k * n, k * n + 1
+    F = []
+    for j in range(k - 1):
+        a, b = j * n, (j + 1) * n
+        for i in range(n):
+            i2 = (i + 1) % n
+            F += [(a + i, a + i2, b + i2), (a + i, b + i2, b + i)]
+    for i in range(n):
+        i2 = (i + 1) % n
+        F += [(ib, i2, i), (it, (k - 1) * n + i, (k - 1) * n + i2)]
+    return V, np.array(F, dtype=np.uint32)
+
 def m_prim(kind, arg, z0, z1):
+    if kind == "skin":
+        V, F = skin_mesh(arg)
+        return m.Manifold(m.Mesh(vert_properties=V.astype(np.float32), tri_verts=F))
     if kind == "poly":
         rings = []
         for p in polys(arg):
@@ -59,7 +81,7 @@ def run_manifold(ops):
         if res is None:
             assert op == "add"; res = t
         else:
-            res = res + t if op == "add" else res - t
+            res = res + t if op == "add" else (res ^ t if op == "int" else res - t)
     return res
 
 def to_trimesh(man):
@@ -70,7 +92,10 @@ def to_trimesh(man):
 from OCP.gp import gp_Pnt, gp_Vec, gp_Ax2, gp_Dir, gp_Trsf
 from OCP.BRepBuilderAPI import BRepBuilderAPI_MakePolygon, BRepBuilderAPI_MakeFace, BRepBuilderAPI_Transform
 from OCP.BRepPrimAPI import BRepPrimAPI_MakePrism, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCone, BRepPrimAPI_MakeBox
-from OCP.BRepAlgoAPI import BRepAlgoAPI_Fuse, BRepAlgoAPI_Cut
+from OCP.BRepAlgoAPI import BRepAlgoAPI_Fuse, BRepAlgoAPI_Cut, BRepAlgoAPI_Common
+from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeEdge, BRepBuilderAPI_MakeWire
+from OCP.BRepOffsetAPI import BRepOffsetAPI_ThruSections
+from OCP.GC import GC_MakeArcOfCircle
 from OCP.collections import List_TopoDS_Shape as TopTools_ListOfShape
 from OCP.STEPControl import STEPControl_Writer, STEPControl_AsIs
 from OCP.BRepCheck import BRepCheck_Analyzer
@@ -84,7 +109,31 @@ def wire(coords):
     mk.Close()
     return mk.Wire()
 
+def rrect_wire(b, r, inset, z):
+    """A rounded rectangle as 4 lines and 4 true arcs at height z (so the STEP skin is made of real curved faces)."""
+    x0, y0, x1, y1 = b[0] + inset, b[1] + inset, b[2] - inset, b[3] - inset
+    rr = r - inset
+    P = lambda x, y: gp_Pnt(float(x), float(y), float(z))
+    corners = [(x1 - rr, y1 - rr, 0), (x0 + rr, y1 - rr, 90), (x0 + rr, y0 + rr, 180), (x1 - rr, y0 + rr, 270)]
+    arcs = []
+    for cx, cy, a0 in corners:
+        a, am, a1 = (math.radians(a0 + d) for d in (0, 45, 90))
+        p0, pm, p1 = (P(cx + rr * math.cos(t), cy + rr * math.sin(t)) for t in (a, am, a1))
+        arcs.append((p0, p1, BRepBuilderAPI_MakeEdge(GC_MakeArcOfCircle(p0, pm, p1).Value()).Edge()))
+    mw = BRepBuilderAPI_MakeWire()
+    for i in range(4):                                  # arc, then the straight side to the next arc
+        mw.Add(arcs[i][2])
+        mw.Add(BRepBuilderAPI_MakeEdge(arcs[i][1], arcs[(i + 1) % 4][0]).Edge())
+    return mw.Wire()
+
 def o_prim(kind, arg, z0, z1):
+    if kind == "skin":
+        ts = BRepOffsetAPI_ThruSections(True, True, 1e-6)     # solid, ruled between the rings
+        for z, d in arg["prof"]:
+            ts.AddWire(rrect_wire(arg["b"], arg["r"], d, z))
+        ts.CheckCompatibility(False)
+        ts.Build()
+        return ts.Shape()
     if kind == "poly":
         shapes = []
         for p in polys(arg):
@@ -152,7 +201,7 @@ def run_occ(ops):
             args = TopTools_ListOfShape(); args.Append(res)
             tl = TopTools_ListOfShape()
             for t in tools: tl.Append(t)
-            b = BRepAlgoAPI_Fuse() if op == "add" else BRepAlgoAPI_Cut()
+            b = BRepAlgoAPI_Fuse() if op == "add" else (BRepAlgoAPI_Common() if op == "int" else BRepAlgoAPI_Cut())
             b.SetArguments(args); b.SetTools(tl); b.Build()
             res = b.Shape()
         i = j

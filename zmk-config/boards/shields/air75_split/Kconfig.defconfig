@@ -1,4 +1,4 @@
-# The right half is the central (it talks to the computer): it has the bigger 402060 battery.
+# The right half is the central: it talks to the computer and relays the left half's keys.
 if SHIELD_AIR75_SPLIT_RIGHT
 
 config ZMK_KEYBOARD_NAME

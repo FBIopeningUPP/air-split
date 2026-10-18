@@ -125,9 +125,12 @@ def cols(pins):
         return f"<&pro_micro {p} GPIO_ACTIVE_HIGH>"
     return "\n        , ".join(one(p) for p in pins)
 
+def pin_names(pins):
+    return ", ".join(p if isinstance(p, str) else f"D{p}" for p in pins)
+
 w(os.path.join(SH, "air75_split_left.overlay"), f'''#include "air75_split.dtsi"
 
-/* Left half: {NCOL_L} columns on D2..D8 */
+/* Left half: {NCOL_L} columns on {pin_names(COL_PINS_L)} */
 &kscan0 {{
     col-gpios
         = {cols(COL_PINS_L)}
@@ -136,7 +139,7 @@ w(os.path.join(SH, "air75_split_left.overlay"), f'''#include "air75_split.dtsi"
 ''')
 w(os.path.join(SH, "air75_split_right.overlay"), f'''#include "air75_split.dtsi"
 
-/* Right half: {NCOL_R} columns on D2..D9 and D1 */
+/* Right half: {NCOL_R} columns on {pin_names(COL_PINS_R)} */
 &kscan0 {{
     col-gpios
         = {cols(COL_PINS_R)}
@@ -154,7 +157,7 @@ w(os.path.join(SH, "Kconfig.shield"), '''config SHIELD_AIR75_SPLIT_LEFT
 config SHIELD_AIR75_SPLIT_RIGHT
     def_bool $(shields_list_contains,air75_split_right)
 ''')
-w(os.path.join(SH, "Kconfig.defconfig"), '''# The right half is the central (it talks to the computer): it has the bigger 402060 battery.
+w(os.path.join(SH, "Kconfig.defconfig"), '''# The right half is the central: it talks to the computer and relays the left half's keys.
 if SHIELD_AIR75_SPLIT_RIGHT
 
 config ZMK_KEYBOARD_NAME
@@ -202,6 +205,11 @@ siblings:
 # Radio power: the right half talks to the computer (full +8 dBm). The left half only talks to the right half,
 # which is right next to it (or touching it), so 0 dBm is plenty and saves battery.
 w(os.path.join(SH, "air75_split_right.conf"), """CONFIG_BT_CTLR_TX_PWR_PLUS_8=y
+# Words-per-minute counter on the right OLED (off by default in ZMK; only the central can show it)
+CONFIG_ZMK_WIDGET_WPM_STATUS=y
+# Report both halves' battery level to the computer (central-only settings)
+CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING=y
+CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_PROXY=y
 """)
 w(os.path.join(SH, "air75_split_left.conf"), """CONFIG_BT_CTLR_TX_PWR_0=y
 """)
@@ -266,9 +274,6 @@ w(os.path.join(ROOT, "config", "west.yml"), '''manifest:
 w(os.path.join(ROOT, "config", "air75_split.conf"), '''# Deep sleep after 15 minutes idle (wakes on any key press)
 CONFIG_ZMK_SLEEP=y
 CONFIG_ZMK_IDLE_SLEEP_TIMEOUT=900000
-# Report both halves' battery level to the computer
-CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING=y
-CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_PROXY=y
 ''')
 w(os.path.join(ROOT, "build.yaml"), '''---
 include:

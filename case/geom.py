@@ -78,7 +78,8 @@ BEZEL_R, BEZEL_END_R = 0.6, 0.8
 PEG_R, PEG_HOLE_R, PEG_L = 0.55, 0.7, 1.0
 EDGE_R  = 2.5         # rounded top edge (outer perimeter; it runs straight across the seam, so the joined board reads as one piece)
 EDGE_RB = 0.8         # rounded bottom edge
-EDGE_STEPS = 12       # 0.2 mm slices: the same as a print layer, so the round is as smooth as the printer can make it
+EDGE_DEG   = 3.0      # the rounded edges are true lofted curves, one ring every 3 degrees of arc (no stair steps)
+CORNER_SEGS = 32      # segments per 90 degree outline corner
 
 def soft(u, R):
     """Inset of a rounded edge at distance u from the face it rounds into. Circle, but never steeper than 45 degrees
@@ -87,6 +88,34 @@ def soft(u, R):
     u45 = R * (1 - 1 / math.sqrt(2))
     if u >= u45: return R - math.sqrt(max(0.0, R * R - (R - u) ** 2))
     return R - math.sqrt(R * R - (R - u45) ** 2) + (u45 - u)
+
+def soft_profile(R):
+    """(u, inset) samples along a teardrop round of radius R, from the wall (u = R, inset 0) to the face (u = 0).
+    The circle part is sampled every EDGE_DEG degrees; the last 45 degree part is straight, so two points do it."""
+    pts, n = [], max(2, int(math.ceil(45.0 / EDGE_DEG)))
+    for i in range(n + 1):
+        f = math.radians(45.0 * i / n)
+        pts.append((R * (1 - math.sin(f)), R * (1 - math.cos(f))))
+    pts.append((0.0, soft(0.0, R)))
+    return pts
+
+def edge_profile():
+    """(z, inset) rings for the case's outer skin: rounded bottom edge, straight wall, rounded top edge."""
+    bot = [(u, d) for u, d in reversed(soft_profile(EDGE_RB))]          # z = u, from the desk up
+    top = [(H_TOTAL - u, d) for u, d in soft_profile(EDGE_R)]           # from the wall up to the deck
+    return bot + top
+
+def rrect_ring(b, r, inset=0.0, n=CORNER_SEGS):
+    """Counter-clockwise rounded rectangle, bounds b, corner radius r, shrunk by inset. Every inset has the same
+    vertex count and angles, so rings at different heights can be lofted into one smooth surface."""
+    x0, y0, x1, y1 = b[0] + inset, b[1] + inset, b[2] - inset, b[3] - inset
+    rr = r - inset
+    out = []
+    for cx, cy, a0 in ((x1 - rr, y1 - rr, 0), (x0 + rr, y1 - rr, 90), (x0 + rr, y0 + rr, 180), (x1 - rr, y0 + rr, 270)):
+        for i in range(n + 1):
+            a = math.radians(a0 + 90.0 * i / n)
+            out.append((cx + rr * math.cos(a), cy + rr * math.sin(a)))
+    return out
 SLIDE  = dict(l=8.6, w=3.7, t=3.5)                           # slide power switch
 USB_SLOT = dict(w=11.0, h=6.2)    # sized for the cable overmold so the plug seats fully
 PWR_SLOT = dict(w=5.2, h=2.4)
@@ -112,7 +141,8 @@ def _global():
     top_edge = maxy
     bay = box(minx, top_edge - 1, maxx, top_edge + BAY_D - MARGIN)
     T = box(minx, miny, maxx, top_edge + BAY_D - MARGIN)    # the cells tile this rectangle exactly; a clean box avoids hairline cracks
-    O = T.buffer(-(CORNER_R - MARGIN), join_style=1, resolution=24).buffer(CORNER_R, join_style=1, resolution=24)
+    OB = (minx - MARGIN, miny - MARGIN, maxx + MARGIN, top_edge + BAY_D)     # T grown by MARGIN, corners rounded
+    O = Polygon(rrect_ring(OB, CORNER_R))
     xcut = {r: max(k["x0"] + k["w"] for k in allk if k["row"] == r and k["side"] == "L") * U for r in range(NROWS)}
     edges = [round(U/2 - k*U, 6) for k in range(NROWS + 1)]      # shared band edges, no hairline gaps
     bands = []
@@ -128,8 +158,11 @@ def _global():
     mags = [(xcut[r], -r*U) for r in range(NROWS)]
     mags += [(xcut[0], top_edge + (BAY_D - WALL) / 2)]
     ox = {"L": 0.0, "R": min(k["x0"] for k in allk if k["side"] == "R") * U}
-    return dict(allk=allk, O=O, left=left, right=right, seam=seam, mags=mags, xcut=xcut, ox=ox,
-                top_edge=top_edge, bay_cut=xcut[0])
+    big = box(-1000.0, -1000.0, 1000.0, 1000.0)       # each half's footprint without the outer outline, used to cut
+    cutR = big.difference(region)                      # the one-piece lofted skin into the two halves
+    cutL = region.difference(cutR.buffer(SEAM_GAP, join_style=2))
+    return dict(allk=allk, O=O, OB=OB, left=left, right=right, seam=seam, mags=mags, xcut=xcut, ox=ox,
+                top_edge=top_edge, bay_cut=xcut[0], cut=dict(L=cutL, R=cutR))
 
 def half(side):
     g = _global()
@@ -257,27 +290,20 @@ def half(side):
                 inner_sign=inner_sign, y_int_top=y_int_top, ox=ox, seam=seam, magnets=magnets,
                 tongue=tongue, groove=groove, oled_glass=oled_glass, oled_win=oled_win, oled_pin_dir=pin_dir, oled_pose=pose,
                 oled_glass_x=(gl_c - OLED["glass_l"]/2, gl_c + OLED["glass_l"]/2),
-                outer=tr(g["O"]))
+                outer=tr(g["O"]), outer_b=(g["OB"][0] - ox, g["OB"][1], g["OB"][2] - ox, g["OB"][3]),
+                footprint=tr(g["cut"][side]).intersection(box(ob[0] - 5, ob[1] - 5, ob[2] + 5, ob[3] + 5)))
 
 # ---- op list (backend independent) -----------------------------------------
 # ('add'|'sub', 'poly', shapely_polygon, z0, z1)
 # ('add'|'sub', 'cyl', (x, y, r), z0, z1)
 # ('add'|'sub', 'box', (x0, y0, x1, y1), z0, z1)
+# ('add', 'skin', dict(b, r, prof), z0, z1)    lofted rounded-rectangle solid; ('int', ...) intersects
 def shell_ops(h):
     z_plate0 = H_TOTAL - PLATE_T
-    n = 5
     ops = []
-    nb = 4                                               # rounded bottom edge
-    for i in range(nb):
-        z0, z1 = EDGE_RB * i / nb, EDGE_RB * (i + 1) / nb
-        ins = soft((z0 + z1) / 2, EDGE_RB)
-        ops.append(("add", "poly", h["outline"].intersection(h["outer"].buffer(-ins, join_style=1, resolution=32)), z0, z1))
-    ops.append(("add", "poly", h["outline"], EDGE_RB, H_TOTAL - EDGE_R))
-    n = EDGE_STEPS                                       # rounded top edge, teardrop profile
-    for i in range(n):
-        z0 = H_TOTAL - EDGE_R + EDGE_R * i / n; z1 = H_TOTAL - EDGE_R + EDGE_R * (i + 1) / n
-        ins = soft(H_TOTAL - (z0 + z1) / 2, EDGE_R)
-        ops.append(("add", "poly", h["outline"].intersection(h["outer"].buffer(-ins, join_style=1, resolution=32)), z0, z1))
+    # outer skin: the whole joined board lofted as one smooth solid (rounded top and bottom edges), cut to this half
+    ops.append(("add", "skin", dict(b=h["outer_b"], r=CORNER_R, prof=edge_profile()), 0.0, H_TOTAL))
+    ops.append(("int", "poly", h["footprint"], -1.0, H_TOTAL + 1.0))
     ops.append(("sub", "poly", h["cavity"], -1.0, z_plate0))
     # OLED bezel seat: a slot through the deck for the module's lower half, and two peg holes
     o = h["comp"]["oled"]
@@ -366,7 +392,7 @@ def bezel_ops(h):
         p = p.union(box(y0, zb, y1, zb + 0.2)).intersection(box(y0, zb, y1, 99))
         return [tuple(c) for c in p.exterior.coords[:-1]]
     ops = [("add", "prismX", profile(0.0), x0 + BEZEL_END_R, x1 - BEZEL_END_R)]
-    k = 5
+    k = 10
     for i in range(k):                                  # rounded ends, teardrop (they face the bed when printing)
         t0, t1 = BEZEL_END_R * i / k, BEZEL_END_R * (i + 1) / k
         e = soft((t0 + t1) / 2, BEZEL_END_R)
