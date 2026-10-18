@@ -1,0 +1,8 @@
+---
+include:
+  - board: nice_nano_v2
+    shield: air75_split_left
+  - board: nice_nano_v2
+    shield: air75_split_right
+  - board: nice_nano_v2
+    shield: settings_reset

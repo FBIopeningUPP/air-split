@@ -1,0 +1,296 @@
+<title>Air75 Split Parts List</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a workbench sheet. Summary strip on top, then parts grouped by where they go,
+   each row = tick box, part, qty, price you can edit, where to buy. Same look as the 3D viewer. */
+:root {
+  --bg: #eef0f2; --paper: #ffffff; --fg: #1b1f24; --muted: #5a636d; --line: #d5dae0;
+  --accent: #1d5fd0; --accent-soft: rgba(29, 95, 208, 0.10);
+  --ok: #2e8a4f; --ok-soft: rgba(46, 138, 79, 0.11); --warn: #9a6200; --warn-soft: rgba(154, 98, 0, 0.12);
+  --chip: rgba(27, 31, 36, 0.06);
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121519; --paper: #1a1e24; --fg: #e6e9ed; --muted: #98a2ad; --line: #2d343c;
+    --accent: #6ea2ff; --accent-soft: rgba(110, 162, 255, 0.12);
+    --ok: #63d48b; --ok-soft: rgba(99, 212, 139, 0.12); --warn: #f2b54a; --warn-soft: rgba(242, 181, 74, 0.13);
+    --chip: rgba(255, 255, 255, 0.06); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121519; --paper: #1a1e24; --fg: #e6e9ed; --muted: #98a2ad; --line: #2d343c;
+  --accent: #6ea2ff; --accent-soft: rgba(110, 162, 255, 0.12);
+  --ok: #63d48b; --ok-soft: rgba(99, 212, 139, 0.12); --warn: #f2b54a; --warn-soft: rgba(242, 181, 74, 0.13);
+  --chip: rgba(255, 255, 255, 0.06); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 14px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px; display: grid; gap: 22px; }
+#groups { display: grid; gap: 26px; }
+header { display: grid; gap: 6px; }
+h1 { font-weight: 700; font-size: clamp(28px, 5vw, 44px); line-height: 1; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+h1 span { color: var(--accent); }
+.sub { color: var(--muted); max-width: 72ch; margin: 0; }
+.summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.tile { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 2px; min-width: 0; }
+.tile .k { font: 500 10.5px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+.tile .v { font: 600 24px var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.tile .s { font-size: 12px; color: var(--muted); }
+.bar { height: 6px; border-radius: 99px; background: var(--chip); overflow: hidden; margin-top: 6px; }
+.bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; background: var(--chip); border-radius: 8px; padding: 3px; gap: 2px; }
+.seg button, .btn { font: inherit; font-size: 13px; color: var(--fg); background: transparent; border: 0; border-radius: 6px; padding: 7px 11px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--paper); box-shadow: 0 1px 0 var(--line); font-weight: 600; }
+.btn { background: var(--fg); color: var(--bg); font-weight: 600; padding: 8px 13px; }
+.switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 4px; user-select: none; }
+.switch input { accent-color: var(--accent); width: 16px; height: 16px; }
+.grow { flex: 1; }
+input[type="search"] { font: inherit; font-size: 13px; color: var(--fg); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; min-width: 0; width: 220px; max-width: 100%; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+section.group { display: grid; gap: 8px; }
+.ghead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ghead h2 { font-weight: 700; font-size: 18px; margin: 0; }
+.ghead .gsum { color: var(--muted); font: 12px var(--mono); font-variant-numeric: tabular-nums; }
+.list { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.row { display: grid; grid-template-columns: 34px minmax(0, 1fr) 92px 110px 96px 140px; gap: 12px; align-items: center; padding: 11px 14px; border-top: 1px solid var(--line); }
+.row:first-child { border-top: 0; }
+.row.have { background: var(--ok-soft); }
+.row.have .name { text-decoration: line-through; text-decoration-color: var(--muted); }
+.row.colhead { font: 500 10.5px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); padding-block: 8px; }
+.tick { width: 22px; height: 22px; accent-color: var(--ok); cursor: pointer; }
+.name { font-weight: 600; font-size: 14px; }
+.spec { color: var(--muted); font-size: 12.5px; margin-top: 1px; }
+.note { font-size: 12.5px; margin-top: 4px; }
+.qty, .line, .price input { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.qty strong { font-size: 15px; }
+.qty small, .line small { display: block; color: var(--muted); font-size: 11px; font-family: var(--sans); }
+.price { display: flex; align-items: center; gap: 4px; }
+.price span { color: var(--muted); }
+.price input { font-size: 13px; width: 76px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); text-align: right; }
+.line { font-weight: 600; text-align: right; }
+.buy { display: grid; gap: 4px; justify-items: start; font-size: 12.5px; }
+.buy a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.buy a:hover { text-decoration: underline; }
+.pill { font: 500 10.5px var(--mono); padding: 2px 7px; border-radius: 99px; white-space: nowrap; }
+.pill.est { color: var(--warn); background: var(--warn-soft); }
+.pill.ok { color: var(--ok); background: var(--ok-soft); }
+.pill.opt { color: var(--muted); background: var(--chip); }
+.empty { padding: 18px 14px; color: var(--muted); }
+.foot { color: var(--muted); font-size: 12.5px; max-width: 80ch; display: grid; gap: 6px; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 9px 14px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+textarea.copyfallback { width: 100%; min-height: 160px; font: 12px var(--mono); background: var(--paper); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+@media (max-width: 780px) {
+  .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .row.colhead { display: none; }
+  .row { grid-template-columns: 30px minmax(0, 1fr) auto; grid-template-areas: "t n n" "t q l" "t p b"; row-gap: 8px; }
+  .row > :nth-child(1) { grid-area: t; align-self: start; }
+  .row > :nth-child(2) { grid-area: n; }
+  .row > :nth-child(3) { grid-area: q; }
+  .row > :nth-child(4) { grid-area: p; }
+  .row > :nth-child(5) { grid-area: l; }
+  .row > :nth-child(6) { grid-area: b; justify-items: end; }
+  input[type="search"] { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .bar i, .toast { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Air75 <span>Split</span> parts</h1>
+    <p class="sub">Everything for both halves of the 70-key (65 %) wireless Air75 split: a smooth 8.0 mm case that prints with no supports (16.4 mm with keycaps on its feet), Gateron KS-33 switches, two SuperMini nRF52840 boards, two 0.91" OLEDs and two KP 551245 batteries. Tick parts off as they arrive. Prices you type are kept in this browser.</p>
+  </header>
+
+  <div class="summary">
+    <div class="tile"><span class="k">Total</span><span class="v" id="tTotal">₹0</span><span class="s" id="tTotalS"></span></div>
+    <div class="tile"><span class="k">Still to buy</span><span class="v" id="tLeft">₹0</span><span class="s" id="tLeftS"></span></div>
+    <div class="tile"><span class="k">Parts in hand</span><span class="v" id="tHave">0 / 0</span><div class="bar"><i id="tBar"></i></div></div>
+    <div class="tile"><span class="k">Prices you set</span><span class="v" id="tChecked">0</span><span class="s">the rest are estimates</span></div>
+  </div>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Show">
+      <button data-f="all" aria-pressed="true">All</button>
+      <button data-f="left" aria-pressed="false">To buy</button>
+      <button data-f="have" aria-pressed="false">In hand</button>
+    </div>
+    <label class="switch" for="spares"><input type="checkbox" id="spares" checked> Buy spares</label>
+    <label class="switch" for="optional"><input type="checkbox" id="optional" checked> Include optional</label>
+    <span class="grow"></span>
+    <input type="search" id="q" placeholder="Search parts" aria-label="Search parts">
+    <button class="btn" id="copy">Copy shopping list</button>
+  </div>
+  <div id="fallback" hidden></div>
+
+  <div id="groups"></div>
+
+  <div class="foot">
+    <div>Every price here is an estimate of a typical Indian price (October 2026). Type in what your shop charges and the totals update.</div>
+    <div>Before you order: the battery must be no longer than 48 mm including its protection board, and no thicker than 5.1 mm. Your USB-C cable's plug head must fit an 11 × 6.2 mm slot.</div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// qty = needed for one keyboard (both halves); spare = extra worth buying; pack = how it's sold
+const PARTS = [
+  { g: "Electronics", id: "mcu", name: "SuperMini nRF52840", spec: "nice!nano-compatible · USB-C · 33 × 18 mm · 13 pads per side", qty: 2, spare: 0, price: 550,
+    store: "Robu / Robokits / AliExpress", note: "Leave the header pins off: wires solder straight to the pads. It sits on 1 mm foam tape." },
+  { g: "Electronics", id: "batt", name: "KP Original 551245 LiPo, 3.7 V", spec: "48 × 14 × 5.1 mm with its protection board · 480 mAh listed", qty: 2, spare: 0, price: 190,
+    store: "Zbotic (listed in stock, ₹189.98)", note: "Sits in a 0.6 mm pocket in the base. Real capacity is likely 300–400 mAh." },
+  { g: "Electronics", id: "oled", name: "0.91\" OLED, 128 × 32, SSD1306, I²C", spec: "4 pins: GND VCC SCL SDA · 38 × 12 mm board", qty: 2, spare: 0, price: 229,
+    store: "Robu / Zbotic / Amazon", note: "Take the header pins off and solder the 4 wires straight to the pads. SDA → D2, SCL → D3." },
+  { g: "Electronics", id: "slide", name: "Slide switch, SS-12D10 class", spec: "power · 8.6 × 3.6 mm body · knob through the back wall", qty: 2, spare: 2, price: 10, store: "Robu / any" },
+  { g: "Electronics", id: "rst", name: "Right-angle tactile switch, 2-pin", spec: "reset · RST ↔ GND · pressed through a 3 mm hole", qty: 2, spare: 2, price: 6, store: "Robu / any",
+    note: "Double-press = bootloader, even with broken firmware." },
+  { g: "Electronics", id: "diode", name: "1N4148 diodes, DO-35", spec: "through-hole · band toward the row wire", qty: 70, spare: 10, price: 1, pack: "pack of 100", store: "Robu / any" },
+
+  { g: "Switches & keycaps", id: "ks33", name: "Gateron KS-33 Low Profile 2.0 switches", spec: "Red is the quietest of Meckeys' three · 14.0 mm plate hole", qty: 70, spare: 5, price: 18, pack: "packs of 10 (about ₹180)", store: "Meckeys / StacksKB / Keychron" },
+  { g: "Switches & keycaps", id: "stab", name: "Low-profile plate-mount 2u stabilizers", spec: "Bksp, Enter, left Shift, both spaces", qty: 5, spare: 0, price: 120, store: "Meckeys / Keychron",
+    note: "Print the fit-test plate first: their cutout is the one size not taken from a datasheet." },
+  { g: "Switches & keycaps", id: "caps", name: "Low-profile keycap set for Gateron LP", spec: "blank, no legends · MX-style stem · nSA / LSA style · 65 % layout", qty: 1, spare: 0, price: 3000, pack: "1 set", store: "Meckeys / Keychron / NuPhy",
+    note: "You need two 2u spacebars (one per half). Most sets have one 2u key at most." },
+  { g: "Switches & keycaps", id: "cap2u", name: "Extra 2u keycap (low profile)", spec: "for the second spacebar", qty: 1, spare: 0, price: 200, optional: true, store: "same shop, or print one" },
+
+  { g: "Case hardware", id: "insert", name: "M2 × 4 mm brass heat-set inserts", spec: "outer Ø about 3.2 mm · 8 left, 10 right", qty: 18, spare: 6, price: 6, pack: "packs of 10", store: "Robu" },
+  { g: "Case hardware", id: "screw", name: "M2 × 5 mm countersunk screws", spec: "DIN 965 / ISO 7046", qty: 18, spare: 6, price: 4, pack: "pack of 25", store: "Robu / hardware shop" },
+  { g: "Case hardware", id: "mag", name: "5 × 1 mm N52 disc magnets", spec: "6 per half, in the seam walls", qty: 12, spare: 4, price: 5, store: "Robu / Amazon",
+    note: "Check polarity: each facing pair must attract before you glue." },
+  { g: "Case hardware", id: "feet", name: "8 mm round silicone feet, 1.5 mm", spec: "self-adhesive · 4 per half", qty: 8, spare: 2, price: 5, pack: "1 sheet", store: "Amazon / hardware shop" },
+
+  { g: "Printing", id: "pla", name: "PLA or PETG filament, 1 kg", spec: "case, bases and OLED bezels about 87 g · no supports · fit-test plate 2 g", qty: 1, spare: 0, price: 900, store: "any filament shop" },
+
+  { g: "Wiring & consumables", id: "wire", name: "30 AWG silicone wire", spec: "7.7 m routed · buy 10 m in 4+ colours (rows, columns, power, signal)", qty: 1, spare: 0, price: 350, pack: "set of colours", store: "Robu / any" },
+  { g: "Wiring & consumables", id: "kapton", name: "Kapton tape, 10 mm", spec: "over the battery protection board and the board's back", qty: 1, spare: 0, price: 150, store: "Robu / any" },
+  { g: "Wiring & consumables", id: "foam", name: "1 mm double-sided foam tape", spec: "under each SuperMini, and to hold the batteries", qty: 1, spare: 0, price: 80, store: "any" },
+  { g: "Wiring & consumables", id: "glue", name: "CA glue", spec: "for the magnets and the two OLED bezels", qty: 1, spare: 0, price: 80, store: "any" },
+  { g: "Wiring & consumables", id: "cable", name: "USB-C cable with a slim plug", spec: "plug head ≤ 11 × 6.2 mm", qty: 1, spare: 0, price: 0, optional: true, store: "you probably have one" },
+
+  { g: "Tools", id: "iron", name: "Soldering iron, solder, flux", spec: "also sets the brass inserts (about 220–250 °C)", qty: 1, spare: 0, price: 0, optional: true, store: "—" },
+  { g: "Tools", id: "dmm", name: "Multimeter", spec: "check every key and the battery polarity", qty: 1, spare: 0, price: 0, optional: true, store: "—" },
+];
+const GROUPS = [...new Set(PARTS.map((p) => p.g))];
+
+const KEY = "air75-split-bom-v1";
+let state = { have: {}, price: {}, filter: "all", spares: true, optional: true };
+try { Object.assign(state, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+
+const $ = (id) => document.getElementById(id);
+const inr = (n) => "₹" + Math.round(n).toLocaleString("en-IN");
+const buyQty = (p) => p.qty + (state.spares ? p.spare : 0);
+const unit = (p) => (state.price[p.id] ?? p.price);
+const lineTotal = (p) => buyQty(p) * unit(p);
+const counted = (p) => state.optional || !p.optional;
+
+function render() {
+  const q = $("q").value.trim().toLowerCase();
+  const root = $("groups"); root.textContent = "";
+  for (const g of GROUPS) {
+    const all = PARTS.filter((p) => p.g === g && counted(p));
+    if (!all.length) continue;
+    const items = all.filter((p) => state.filter === "all" || (state.filter === "have") === !!state.have[p.id])
+      .filter((p) => !q || (p.name + " " + p.spec + " " + (p.store || "")).toLowerCase().includes(q));
+    const sec = document.createElement("section"); sec.className = "group";
+    const sum = all.reduce((a, p) => a + lineTotal(p), 0);
+    const haveN = all.filter((p) => state.have[p.id]).length;
+    sec.innerHTML = `<div class="ghead"><h2></h2><span class="gsum">${haveN}/${all.length} in hand · ${inr(sum)}</span></div><div class="list"></div>`;
+    sec.querySelector("h2").textContent = g;
+    const list = sec.querySelector(".list");
+    const head = document.createElement("div"); head.className = "row colhead";
+    head.innerHTML = "<span></span><span>Part</span><span>Qty</span><span>Each</span><span style=\"text-align:right\">Total</span><span>Where</span>";
+    list.appendChild(head);
+    if (!items.length) {
+      const e = document.createElement("div"); e.className = "empty";
+      e.textContent = state.filter === "have" ? "Nothing ticked here yet." : q ? "No match." : "All of these are in hand.";
+      list.appendChild(e);
+    }
+    for (const p of items) list.appendChild(rowEl(p));
+    root.appendChild(sec);
+  }
+  totals();
+}
+
+function rowEl(p) {
+  const r = document.createElement("div");
+  r.className = "row" + (state.have[p.id] ? " have" : "");
+  const status = state.price[p.id] !== undefined ? `<span class="pill ok">your price</span>` : `<span class="pill est">estimate</span>`;
+  r.innerHTML = `
+    <input type="checkbox" class="tick" id="have-${p.id}" aria-label="In hand: ${p.name}">
+    <div><div class="name"></div><div class="spec"></div>${p.note ? `<div class="note"></div>` : ""}</div>
+    <div class="qty"><strong>${buyQty(p)}</strong>${p.spare && state.spares ? `<small>${p.qty} + ${p.spare} spare</small>` : `<small>${p.pack || "needed"}</small>`}</div>
+    <label class="price" for="price-${p.id}"><span>₹</span><input id="price-${p.id}" type="number" min="0" step="1" inputmode="numeric" value="${unit(p)}"></label>
+    <div class="line">${inr(lineTotal(p))}<small>${p.pack && p.spare && state.spares ? p.pack : ""}</small></div>
+    <div class="buy"></div>`;
+  r.querySelector(".name").textContent = p.name;
+  if (p.optional) r.querySelector(".name").insertAdjacentHTML("beforeend", ` <span class="pill opt">optional</span>`);
+  r.querySelector(".spec").textContent = p.spec;
+  if (p.note) r.querySelector(".note").textContent = p.note;
+  const buy = r.querySelector(".buy");
+  if (p.url) { const a = document.createElement("a"); a.href = p.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = p.store + " ↗"; buy.appendChild(a); }
+  else { const s = document.createElement("span"); s.textContent = p.store || ""; buy.appendChild(s); }
+  if (unit(p) > 0) buy.insertAdjacentHTML("beforeend", status);
+  const tick = r.querySelector(".tick"); tick.checked = !!state.have[p.id];
+  tick.addEventListener("change", () => { state.have[p.id] = tick.checked; save(); render(); });
+  const pin = r.querySelector("input[type=number]");
+  pin.addEventListener("change", () => {
+    const v = Math.max(0, Number(pin.value) || 0);
+    if (v === p.price) delete state.price[p.id]; else state.price[p.id] = v;
+    save(); render(); const el = $("price-" + p.id); if (el) el.focus();
+  });
+  return r;
+}
+
+function totals() {
+  const list = PARTS.filter(counted);
+  const total = list.reduce((a, p) => a + lineTotal(p), 0);
+  const left = list.filter((p) => !state.have[p.id]);
+  const haveN = list.length - left.length;
+  $("tTotal").textContent = inr(total);
+  $("tTotalS").textContent = `${list.length} parts${state.spares ? ", with spares" : ""}`;
+  $("tLeft").textContent = inr(left.reduce((a, p) => a + lineTotal(p), 0));
+  $("tLeftS").textContent = `${left.length} parts left`;
+  $("tHave").textContent = `${haveN} / ${list.length}`;
+  $("tBar").style.width = (list.length ? (haveN / list.length) * 100 : 0) + "%";
+  $("tChecked").textContent = `${list.filter((p) => state.price[p.id] !== undefined).length} / ${list.filter((p) => p.price > 0).length}`;
+}
+
+function shoppingList() {
+  const left = PARTS.filter((p) => counted(p) && !state.have[p.id] && unit(p) > 0);
+  const lines = ["Air75 Split: still to buy", ""];
+  for (const g of GROUPS) {
+    const items = left.filter((p) => p.g === g);
+    if (!items.length) continue;
+    lines.push(g);
+    for (const p of items) lines.push(`- ${buyQty(p)} × ${p.name} (${p.spec})${p.store ? " · " + p.store : ""}`);
+    lines.push("");
+  }
+  lines.push(`About ${inr(left.reduce((a, p) => a + lineTotal(p), 0))} in total`);
+  return lines.join("\n");
+}
+function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 1800); }
+$("copy").addEventListener("click", () => {
+  const text = shoppingList();
+  const fallback = () => {
+    const box = $("fallback"); box.hidden = false; box.textContent = "";
+    const ta = document.createElement("textarea"); ta.className = "copyfallback"; ta.value = text; ta.readOnly = true; ta.setAttribute("aria-label", "Shopping list");
+    box.appendChild(ta); ta.focus(); ta.select(); toast("Select all and copy the list below");
+  };
+  try { navigator.clipboard.writeText(text).then(() => toast("Shopping list copied"), fallback); } catch (e) { fallback(); }
+});
+document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => {
+  state.filter = b.dataset.f; save();
+  document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  render();
+}));
+$("spares").checked = state.spares; $("optional").checked = state.optional;
+document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.f === state.filter)));
+$("spares").addEventListener("change", (e) => { state.spares = e.target.checked; save(); render(); });
+$("optional").addEventListener("change", (e) => { state.optional = e.target.checked; save(); render(); });
+$("q").addEventListener("input", render);
+render();
+</script>

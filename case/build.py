@@ -1,0 +1,214 @@
+"""Build STL (manifold3d) and STEP (OpenCascade) files from the op lists in geom.py."""
+import os, sys, math
+import numpy as np
+import trimesh
+import manifold3d as m
+from shapely.geometry import Polygon, MultiPolygon
+from shapely.geometry.polygon import orient
+import geom as G
+
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "out")
+os.makedirs(os.path.join(OUT, "stl"), exist_ok=True)
+os.makedirs(os.path.join(OUT, "step"), exist_ok=True)
+
+def polys(p):
+    return list(p.geoms) if isinstance(p, MultiPolygon) else [p]
+
+# ---------------- manifold backend ----------------
+def m_prim(kind, arg, z0, z1):
+    if kind == "poly":
+        rings = []
+        for p in polys(arg):
+            p = orient(p, 1.0)
+            rings.append(np.array(p.exterior.coords[:-1], dtype=float))
+            for i in p.interiors:
+                rings.append(np.array(i.coords[:-1], dtype=float))
+        cs = m.CrossSection(rings)
+        return m.Manifold.extrude(cs, z1 - z0).translate((0, 0, z0))
+    if kind == "cyl":
+        x, y, r = arg
+        return m.Manifold.cylinder(z1 - z0, r, r, 48).translate((x, y, z0))
+    if kind == "cone":
+        x, y, r0, r1 = arg
+        return m.Manifold.cylinder(z1 - z0, r0, r1, 48).translate((x, y, z0))
+    if kind == "cylY":
+        x, zc, r = arg
+        return m.Manifold.cylinder(z1 - z0, r, r, 48).rotate((-90, 0, 0)).translate((x, z0, zc))
+    if kind == "cylX":
+        y, zc, r = arg
+        return m.Manifold.cylinder(z1 - z0, r, r, 48).rotate((0, 90, 0)).translate((z0, y, zc))
+    if kind == "box":
+        x0, y0, x1, y1 = arg
+        return m.Manifold.cube((x1 - x0, y1 - y0, z1 - z0)).translate((x0, y0, z0))
+    if kind == "prismY":          # polygon in the (x, z) plane, extruded along y from z0 to z1 (here: y0, y1)
+        from shapely.geometry import Polygon as _P
+        p = orient(_P(arg), 1.0)
+        uv = np.array([(x, z) for x, z in p.exterior.coords[:-1]], dtype=float)
+        return m.Manifold.extrude(m.CrossSection([uv]), z1 - z0).rotate((90, 0, 0)).translate((0, z1, 0))
+    if kind == "prismX":          # polygon in the (y, z) plane, extruded along x from z0 to z1 (here: x0, x1)
+        from shapely.geometry import Polygon as _P
+        p = orient(_P(arg), 1.0)
+        uv = np.array([(-z, y) for y, z in p.exterior.coords[:-1]], dtype=float)
+        return m.Manifold.extrude(m.CrossSection([uv]), z1 - z0).rotate((0, 90, 0)).translate((z0, 0, 0))
+    raise ValueError(kind)
+
+def run_manifold(ops):
+    res = None
+    for op, kind, arg, z0, z1 in ops:
+        t = m_prim(kind, arg, z0, z1)
+        if res is None:
+            assert op == "add"; res = t
+        else:
+            res = res + t if op == "add" else res - t
+    return res
+
+def to_trimesh(man):
+    mesh = man.to_mesh()
+    return trimesh.Trimesh(vertices=np.array(mesh.vert_properties)[:, :3], faces=np.array(mesh.tri_verts), process=True)
+
+# ---------------- OpenCascade backend ----------------
+from OCP.gp import gp_Pnt, gp_Vec, gp_Ax2, gp_Dir, gp_Trsf
+from OCP.BRepBuilderAPI import BRepBuilderAPI_MakePolygon, BRepBuilderAPI_MakeFace, BRepBuilderAPI_Transform
+from OCP.BRepPrimAPI import BRepPrimAPI_MakePrism, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeCone, BRepPrimAPI_MakeBox
+from OCP.BRepAlgoAPI import BRepAlgoAPI_Fuse, BRepAlgoAPI_Cut
+from OCP.collections import List_TopoDS_Shape as TopTools_ListOfShape
+from OCP.STEPControl import STEPControl_Writer, STEPControl_AsIs
+from OCP.BRepCheck import BRepCheck_Analyzer
+from OCP.GProp import GProp_GProps
+from OCP.BRepGProp import BRepGProp
+
+def wire(coords):
+    mk = BRepBuilderAPI_MakePolygon()
+    for x, y in coords[:-1]:
+        mk.Add(gp_Pnt(float(x), float(y), 0.0))
+    mk.Close()
+    return mk.Wire()
+
+def o_prim(kind, arg, z0, z1):
+    if kind == "poly":
+        shapes = []
+        for p in polys(arg):
+            p = orient(p, 1.0)
+            mf = BRepBuilderAPI_MakeFace(wire(list(p.exterior.coords)), True)
+            for i in p.interiors:
+                mf.Add(wire(list(i.coords)))
+            face = mf.Face()
+            prism = BRepPrimAPI_MakePrism(face, gp_Vec(0, 0, z1 - z0)).Shape()
+            tr = gp_Trsf(); tr.SetTranslation(gp_Vec(0, 0, z0))
+            shapes.append(BRepBuilderAPI_Transform(prism, tr, True).Shape())
+        out = shapes[0]
+        for s in shapes[1:]:
+            out = BRepAlgoAPI_Fuse(out, s).Shape()
+        return out
+    if kind == "cyl":
+        x, y, r = arg
+        return BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(x, y, z0), gp_Dir(0, 0, 1)), r, z1 - z0).Shape()
+    if kind == "cone":
+        x, y, r0, r1 = arg
+        return BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(x, y, z0), gp_Dir(0, 0, 1)), r0, r1, z1 - z0).Shape()
+    if kind == "cylY":
+        x, zc, r = arg
+        return BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(x, z0, zc), gp_Dir(0, 1, 0)), r, z1 - z0).Shape()
+    if kind == "cylX":
+        y, zc, r = arg
+        return BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(z0, y, zc), gp_Dir(1, 0, 0)), r, z1 - z0).Shape()
+    if kind == "box":
+        x0, y0, x1, y1 = arg
+        return BRepPrimAPI_MakeBox(gp_Pnt(x0, y0, z0), x1 - x0, y1 - y0, z1 - z0).Shape()
+    if kind == "prismY":
+        poly = BRepBuilderAPI_MakePolygon()
+        for x, z in arg:
+            poly.Add(gp_Pnt(x, z0, z))
+        poly.Close()
+        face = BRepBuilderAPI_MakeFace(poly.Wire(), True).Face()
+        return BRepPrimAPI_MakePrism(face, gp_Vec(0, z1 - z0, 0)).Shape()
+    if kind == "prismX":
+        poly = BRepBuilderAPI_MakePolygon()
+        for y, z in arg:
+            poly.Add(gp_Pnt(z0, y, z))
+        poly.Close()
+        face = BRepBuilderAPI_MakeFace(poly.Wire(), True).Face()
+        return BRepPrimAPI_MakePrism(face, gp_Vec(z1 - z0, 0, 0)).Shape()
+    raise ValueError(kind)
+
+def run_occ(ops):
+    res = None
+    i = 0
+    while i < len(ops):
+        op = ops[i][0]
+        j = i
+        tools = []
+        while j < len(ops) and ops[j][0] == op:
+            _, kind, arg, z0, z1 = ops[j]
+            tools.append(o_prim(kind, arg, z0, z1)); j += 1
+        if res is None:
+            res = tools[0]
+            if len(tools) > 1:
+                args = TopTools_ListOfShape(); args.Append(res)
+                tl = TopTools_ListOfShape()
+                for t in tools[1:]: tl.Append(t)
+                f = BRepAlgoAPI_Fuse(); f.SetArguments(args); f.SetTools(tl); f.Build(); res = f.Shape()
+        else:
+            args = TopTools_ListOfShape(); args.Append(res)
+            tl = TopTools_ListOfShape()
+            for t in tools: tl.Append(t)
+            b = BRepAlgoAPI_Fuse() if op == "add" else BRepAlgoAPI_Cut()
+            b.SetArguments(args); b.SetTools(tl); b.Build()
+            res = b.Shape()
+        i = j
+    return res
+
+def write_step(shape, path):
+    w = STEPControl_Writer(); w.Transfer(shape, STEP_AS_IS); w.Write(path)
+
+STEP_AS_IS = STEPControl_AsIs
+
+def occ_volume(shape):
+    p = GProp_GProps(); BRepGProp.VolumeProperties_s(shape, p); return p.Mass()
+
+MESHES = {}
+
+def make(name, ops, step=True):
+    man = run_manifold(ops)
+    tm = to_trimesh(man)
+    tm.export(os.path.join(OUT, "stl", name + ".stl"))
+    MESHES[name] = tm
+    info = dict(name=name, watertight=bool(tm.is_watertight), vol_mm3=float(man.volume()),
+                bbox=[round(v, 2) for v in (tm.bounds[1] - tm.bounds[0])])
+    if step:
+        sh = run_occ(ops)
+        write_step(sh, os.path.join(OUT, "step", name + ".step"))
+        info["step_valid"] = bool(BRepCheck_Analyzer(sh).IsValid())
+        info["step_vol_mm3"] = float(occ_volume(sh))
+    return info
+
+def print_pose(name, tm):
+    """Copy of a part turned the way it should sit on the bed, resting on z = 0, centred on x/y = 0."""
+    t = tm.copy()
+    if name.endswith("_shell"):                        # plate face down: the switch plate is the first layer
+        t.apply_transform(trimesh.transformations.rotation_matrix(math.pi, [0, 1, 0]))
+    elif name.endswith("_oled_bezel"):                 # window face down: tilt the slope flat, then flip
+        th = math.radians(G.OLED_TILT)
+        t.apply_transform(trimesh.transformations.rotation_matrix(-th, [1, 0, 0]))
+        t.apply_transform(trimesh.transformations.rotation_matrix(math.pi, [0, 1, 0]))
+    c = t.bounds.mean(axis=0)
+    t.apply_translation([-c[0], -c[1], -t.bounds[0][2]])
+    return t
+
+def write_print_ready():
+    d = os.path.join(OUT, "stl", "print_ready"); os.makedirs(d, exist_ok=True)
+    for name, tm in MESHES.items():
+        print_pose(name, tm).export(os.path.join(d, name + ".stl"))
+
+if __name__ == "__main__":
+    results = []
+    for s in "LR":
+        h = G.half(s)
+        nm = {"L": "left", "R": "right"}[s]
+        results.append(make(f"{nm}_shell", G.shell_ops(h)))
+        results.append(make(f"{nm}_base", G.base_ops(h)))
+        results.append(make(f"{nm}_oled_bezel", G.bezel_ops(h)))
+    results.append(make("fit_test_plate", G.fit_test_ops()))
+    write_print_ready()
+    for r in results:
+        print(r)

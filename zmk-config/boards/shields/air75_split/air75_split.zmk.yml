@@ -1,0 +1,12 @@
+file_format: "1"
+id: air75_split
+name: Air75 Split
+type: shield
+url: https://zmk.dev/docs/development/hardware-integration/new-shield
+requires: [pro_micro]
+features:
+  - keys
+  - display
+siblings:
+  - air75_split_left
+  - air75_split_right

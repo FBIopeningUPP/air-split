@@ -1,0 +1,5 @@
+config SHIELD_AIR75_SPLIT_LEFT
+    def_bool $(shields_list_contains,air75_split_left)
+
+config SHIELD_AIR75_SPLIT_RIGHT
+    def_bool $(shields_list_contains,air75_split_right)
