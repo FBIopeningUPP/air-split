@@ -1,0 +1,26 @@
+config AIR75_OLED_SCREEN
+    bool "Air75 Split animated OLED screens"
+    depends on ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
+    default y
+    select LV_USE_CANVAS
+    select LV_USE_IMG
+    select ZMK_WPM if !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
+    help
+      Right half: spectrum bars that jump where you type, a seven-segment WPM counter, Bluetooth profile, layer and
+      both batteries. Left half: a live key map with ripples and its battery in big digits.
+
+if AIR75_OLED_SCREEN
+
+config AIR75_OLED_FRAME_MS
+    int "Time between animation frames (ms)"
+    default 40
+    help
+      The screen only redraws while something moves; when nothing changes it sends nothing to the display.
+
+config AIR75_OLED_SWAP_COLORS
+    bool "Swap lit and dark pixels"
+    help
+      The devicetree sets inversion-on, so an LVGL black pixel is lit. Turn this on for a module that shows the
+      screen in negative.
+
+endif

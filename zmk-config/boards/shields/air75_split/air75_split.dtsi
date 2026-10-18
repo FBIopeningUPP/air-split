@@ -126,6 +126,7 @@
 /* 0.91" 128 x 32 SSD1306 OLED on each half, on the SuperMini's I2C pins (D2 = SDA, D3 = SCL). */
 &pro_micro_i2c {
     status = "okay";
+    clock-frequency = <400000>;   /* 400 kHz fast mode: a full frame takes ~12 ms instead of ~46 ms at the default */
 
     oled: ssd1306@3c {
         compatible = "solomon,ssd1306fb";

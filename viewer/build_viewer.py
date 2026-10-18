@@ -13,6 +13,8 @@ def mesh(name):
     m = trimesh.load(os.path.join(OUT, name + ".stl"))
     return dict(v=enc(m.vertices.astype(np.float32)), i=enc(m.faces.astype(np.uint32)))
 
+import oled_art
+POS = {(k["row"], round(k["x0"], 3)): i for i, k in enumerate(G._global()["allk"])}   # keymap position of each key
 WIRING = json.load(open(os.path.join(OUT, "..", "wiring.json")))
 data = dict(H=G.H_TOTAL, PLATE=G.PLATE_T, BASE=G.BASE_T, SWH=G.SW_HOLE, U=U, MCU=G.MCU, BATT=G.BATT,
             MAG=dict(r=G.MAG_D/2, t=G.MAG_T, z=G.MAG_Z), SLIDE=G.SLIDE, STAB_DX=G.STAB_DX,
@@ -24,7 +26,7 @@ for s, nm in (("L", "left"), ("R", "right")):
     data[s] = dict(
         shell=mesh(f"{nm}_shell"), base=mesh(f"{nm}_base"), bezel=mesh(f"{nm}_oled_bezel"),
         bounds=[b[0], b[1], b[2], b[3]],
-        keys=[[round(k["X"], 3), round(k["Y"], 3), k["w"], k["label"], k["row"], k["col_local"]] for k in h["keys"]],
+        keys=[[round(k["X"], 3), round(k["Y"], 3), k["w"], k["label"], k["row"], k["col_local"], POS[(k["row"], round(k["x0"], 3))]] for k in h["keys"]],
         comp={n: [c["cx"], c["cy"], c["w"], c["h"]] for n, c in h["comp"].items()}, side=s,
         posts=len(h["posts"]), ox=h["ox"],
         magnets=[[round(m["x"], 3), round(m["y"], 3)] for m in h["magnets"]],
@@ -37,6 +39,8 @@ for s, nm in (("L", "left"), ("R", "right")):
     )
 
 TEMPLATE = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "template.html")).read()
-html = TEMPLATE.replace("/*DATA*/", json.dumps(data, separators=(",", ":")))
+data["OLED_ART"] = oled_art.js_data()
+RENDER_JS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "oled_render.js")).read()
+html = TEMPLATE.replace("/*DATA*/", json.dumps(data, separators=(",", ":"))).replace("/*OLED_RENDER*/", RENDER_JS)
 open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html"), "w").write(html)
 print("viewer written", round(len(html)/1e6, 2), "MB")

@@ -97,6 +97,7 @@ dtsi += """
 /* 0.91" 128 x 32 SSD1306 OLED on each half, on the SuperMini's I2C pins (D2 = SDA, D3 = SCL). */
 &pro_micro_i2c {
     status = "okay";
+    clock-frequency = <400000>;   /* 400 kHz fast mode: a full frame takes ~12 ms instead of ~46 ms at the default */
 
     oled: ssd1306@3c {
         compatible = "solomon,ssd1306fb";
@@ -184,6 +185,33 @@ config I2C
 config SSD1306
     default y
 
+# The animated screens in src/air75_oled (turn them off with CONFIG_ZMK_DISPLAY_STATUS_SCREEN_BUILT_IN=y)
+choice ZMK_DISPLAY_STATUS_SCREEN
+    default ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
+endchoice
+
+choice ZMK_DISPLAY_WORK_QUEUE
+    default ZMK_DISPLAY_WORK_QUEUE_DEDICATED
+endchoice
+
+endif
+
+# 1-bit LVGL for the monochrome SSD1306, as on the Corne
+if LVGL
+
+config LV_Z_VDB_SIZE
+    default 64
+
+config LV_DPI_DEF
+    default 148
+
+config LV_Z_BITS_PER_PIXEL
+    default 1
+
+choice LV_COLOR_DEPTH
+    default LV_COLOR_DEPTH_1
+endchoice
+
 endif
 
 endif
@@ -205,8 +233,6 @@ siblings:
 # Radio power: the right half talks to the computer (full +8 dBm). The left half only talks to the right half,
 # which is right next to it (or touching it), so 0 dBm is plenty and saves battery.
 w(os.path.join(SH, "air75_split_right.conf"), """CONFIG_BT_CTLR_TX_PWR_PLUS_8=y
-# Words-per-minute counter on the right OLED (off by default in ZMK; only the central can show it)
-CONFIG_ZMK_WIDGET_WPM_STATUS=y
 # Report both halves' battery level to the computer (central-only settings)
 CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING=y
 CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_PROXY=y
@@ -256,9 +282,48 @@ w(os.path.join(SH, "air75_split.keymap"), keymap)
 # ---- repo plumbing ----
 w(os.path.join(ROOT, "zephyr", "module.yml"), '''name: zmk-keyboard-air75-split
 build:
+  cmake: .
+  kconfig: Kconfig
   settings:
     board_root: .
 ''')
+w(os.path.join(ROOT, "CMakeLists.txt"), '''# Animated OLED screens (src/air75_oled). The C renderer is checked against the viewer by case/oled_check.py.
+if(CONFIG_AIR75_OLED_SCREEN)
+  zephyr_library_named(air75_oled)
+  zephyr_library_include_directories(${CMAKE_SOURCE_DIR}/include)
+  zephyr_library_include_directories(src/air75_oled)
+  zephyr_library_sources(src/air75_oled/render.c src/air75_oled/status_screen.c)
+endif()
+''')
+w(os.path.join(ROOT, "Kconfig"), '''config AIR75_OLED_SCREEN
+    bool "Air75 Split animated OLED screens"
+    depends on ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
+    default y
+    select LV_USE_CANVAS
+    select LV_USE_IMG
+    select ZMK_WPM if !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
+    help
+      Right half: spectrum bars that jump where you type, a seven-segment WPM counter, Bluetooth profile, layer and
+      both batteries. Left half: a live key map with ripples and its battery in big digits.
+
+if AIR75_OLED_SCREEN
+
+config AIR75_OLED_FRAME_MS
+    int "Time between animation frames (ms)"
+    default 40
+    help
+      The screen only redraws while something moves; when nothing changes it sends nothing to the display.
+
+config AIR75_OLED_SWAP_COLORS
+    bool "Swap lit and dark pixels"
+    help
+      The devicetree sets inversion-on, so an LVGL black pixel is lit. Turn this on for a module that shows the
+      screen in negative.
+
+endif
+''')
+import oled_art
+w(os.path.join(ROOT, "src", "air75_oled", "air75_oled_data.h"), oled_art.c_header())
 w(os.path.join(ROOT, "config", "west.yml"), '''manifest:
   remotes:
     - name: zmkfirmware

@@ -80,7 +80,14 @@ Left half is everything left of the `||`. The Fn key is the last key in the left
 - The glass sits in a pocket under a {G.OLED['lip']} mm lip with a {G.OLED['win_l']} x {G.OLED['win_w']} mm window. Push the module into the bezel from underneath, then put a dab of hot glue at each end of its circuit board.
 - Thread the 4 wires through the deck slot, then glue the bezel down with a thin line of CA glue (or 0.2 mm double-sided tape) around its base.
 - Remove any header pins and solder the 4 wires straight to the pads from the back of the module.
-- The right half (central) shows its battery, the Bluetooth profile, the active layer and a words-per-minute counter; the left half shows its battery and the link to the right half. ZMK turns the screens off when the keyboard sleeps.
+- Both screens run custom animated firmware (`zmk-config/src/air75_oled/`). Each plays a short "AIR75" boot sweep.
+- **Right half:** spectrum-analyzer bars that jump at the spot on the board where you type, with peak dots that hang and fall; a big seven-segment WPM counter whose unlit segments glow faintly; the Bluetooth profile and link; the active layer (an inverted FN tag while you hold Fn); and both halves' batteries.
+- **Left half:** a live map of its 30 keys that fill when pressed and fade out, sonar ripples from every key press, the link to the right half, and its battery in big digits.
+
+  ![Right screen](out/oled_right.gif) ![Left screen](out/oled_left.gif)
+
+- The 3D viewer runs the same drawing code: `case/oled_check.py` runs the C renderer and the viewer's JavaScript copy on the same typing session and checks every frame matches byte for byte.
+- Battery: the screens only redraw while something moves (25 frames a second while you type, nothing when you stop), and ZMK turns them off when the keyboard goes idle. The bus to the screens runs at 400 kHz, so a full frame takes about 12 ms. To go back to ZMK's plain status screen, add `CONFIG_ZMK_DISPLAY_STATUS_SCREEN_BUILT_IN=y` to `zmk-config/config/air75_split.conf`.
 
 ## How the halves join
 
@@ -121,6 +128,8 @@ out/wiring.json     3D route of every wire and diode (used by the viewer)
 case/               Python that generates everything. Edit geom.py or layout.py, re-run
 firmware/           ready-built .uf2 files for both halves and settings_reset
 zmk-config/         firmware source: push to GitHub, Actions builds the .uf2 files
+zmk-config/src/air75_oled/  the animated screens (render.c draws, status_screen.c connects it to ZMK)
+out/oled_*.gif      what each screen shows while you type
 viewer/index.html   the 3D studio viewer
 bom/index.html      the interactive parts list
 ```
@@ -131,6 +140,7 @@ Regenerate after changing anything:
 cd case
 python3 gen_zmk.py && python3 build.py && python3 verify.py && python3 check_step.py   # verify includes the support check
 python3 routing.py     # wire routes + clearance report (should say 0 problems on both halves)
+python3 oled_check.py  # screens: C and viewer frames identical, writes out/oled_*.gif
 python3 drawings.py && python3 wiring.py && python3 profile.py && python3 guide.py
 cd ../viewer && python3 build_viewer.py
 ```
@@ -224,7 +234,7 @@ Battery + goes through the power switch to **B+**; battery − to the **GND** on
 
 ## Firmware
 
-Ready-built firmware is in `firmware/`: `air75_split_left.uf2`, `air75_split_right.uf2` and `settings_reset.uf2`, compiled from `zmk-config/` against ZMK v0.3 for the `nice_nano_v2` board (left: 252 KB of flash, right: 295 KB; both well under the 792 KB limit).
+Ready-built firmware is in `firmware/`: `air75_split_left.uf2`, `air75_split_right.uf2` and `settings_reset.uf2`, compiled from `zmk-config/` against ZMK v0.3 for the `nice_nano_v2` board (left: 240 KB of flash, right: 282 KB; both well under the 792 KB limit).
 
 1. Double-tap reset on a SuperMini to get its USB drive, then drop a `.uf2` on it.
 2. Flash `settings_reset` to both halves first, then `air75_split_left` to the left half and `air75_split_right` to the right.

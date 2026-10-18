@@ -150,6 +150,10 @@ details.more[open] summary::after { content: "–"; }
       <div class="swatches" id="capSw"></div>
     </div>
     <div class="group">
+      <div class="label">Screens</div>
+      <div class="swatches" id="oledSw"></div>
+    </div>
+    <div class="group">
       <div class="label">Snapshot</div>
       <button class="primary" id="snap">Copy image</button>
       <div class="seg four" data-opt="shape"><button data-v="screen">Screen</button><button data-v="16:9">16:9</button><button data-v="1:1">1:1</button><button data-v="4:5">4:5</button></div>
@@ -168,7 +172,7 @@ details.more[open] summary::after { content: "–"; }
   </aside>
 
   <div class="typebar">
-    <p>Type anywhere: the keys press and the right OLED counts your WPM.</p>
+    <p>Type anywhere: the keys press and both screens react.</p>
     <span><small>WPM </small><b id="wpm">0</b></span>
     <button class="tog" id="demo" aria-pressed="false">Demo typing</button>
   </div>
@@ -189,6 +193,7 @@ details.more[open] summary::after { content: "–"; }
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script type="application/json" id="data">/*DATA*/</script>
+<script>/*OLED_RENDER*/</script>
 <script>
 (function () {
   THREE.Object3D.DefaultUp.set(0, 0, 1);
@@ -225,7 +230,8 @@ details.more[open] summary::after { content: "–"; }
     pouch: std(0xd5d9de, 0.3, 0.6), pouchSeal: std(0xc4c8cd, 0.35, 0.6), kapton: std(0xe7a92b, 0.4, 0, { transparent: true, opacity: 0.92 }),
     label: std(0x2f6f5a, 0.7), diode: std(0xd2662a, 0.25, 0, { transparent: true, opacity: 0.88 }), ink: std(0x111111, 0.5),
     magnet: std(0xcfd4da, 0.25, 0.85), foot: std(0x2a2a2a, 0.9), hole: std(0x0a0a0a, 0.9),
-    oledPcb: std(0x1f3a64, 0.5), glass: std(0x07080a, 0.12, 0.2), header: std(0xd9b45a, 0.3, 0.8)
+    oledPcb: std(0x1f3a64, 0.5), glass: std(0x07080a, 0.3, 0, { envMapIntensity: 0.25 }), header: std(0xd9b45a, 0.3, 0.8),
+    glassTop: std(0x000000, 0.35, 0, { transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, envMapIntensity: 0.12, side: THREE.FrontSide })
   };
 
   // ---------- geometry helpers ----------
@@ -341,43 +347,74 @@ details.more[open] summary::after { content: "–"; }
     return g;
   }
 
-  // ---------- OLED screens: 128 x 32 pixels, drawn like ZMK's status screen ----------
-  var oleds = {};
-  function oledScreen(side) {
-    var c = document.createElement('canvas'); c.width = 128; c.height = 32;
-    var tex = new THREE.CanvasTexture(c); tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.LinearFilter; tex.encoding = THREE.sRGBEncoding;
-    oleds[side] = { c: c, tex: tex }; return tex;
+  // ---------- OLED screens: the firmware's own renderer (oled_render.js is a twin of render.c) ----------
+  // Each screen paints the renderer's 128 x 32 frame at 8 px per pixel: a faint grid of unlit pixels, lit pixels as
+  // soft squares, and a glow from a blurred copy, so close-ups look like the module behind its glass.
+  var OLED_PX = 8, OLED_COLORS = [['White', '#eaf4ff'], ['Blue', '#62cbff']], oledColor = OLED_COLORS[0][1];
+  var oleds = {}, sims = {}, simStart = 0, oledGrid = null;
+  function bootOleds() {
+    sims = { R: AirOled.create(D.OLED_ART, AirOled.CENTRAL, 20240611), L: AirOled.create(D.OLED_ART, AirOled.PERIPHERAL, 7) };
+    simStart = performance.now();
   }
-  var wpm = 0, battery = { L: 86, R: 91 }, profile = 1;
-  function drawOleds(t) {
-    ['L', 'R'].forEach(function (s) {
-      var o = oleds[s]; if (!o) return;
-      var x = o.c.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0, 0, 128, 32); x.fillStyle = '#e8f6ff';
-      function bt(px, py) {                                     // bluetooth rune, 7 x 11 px
-        [[3,0],[3,1],[3,2],[3,3],[3,4],[3,5],[3,6],[3,7],[3,8],[3,9],[3,10],[4,1],[5,2],[4,3],[2,4],[1,3],[0,2],[2,6],[1,7],[0,8],[4,7],[5,8],[4,9]]
-          .forEach(function (p) { x.fillRect(px + p[0], py + p[1], 1, 1); });
-      }
-      function batt(px, py, pct) {
-        x.fillRect(px, py, 22, 1); x.fillRect(px, py + 10, 22, 1); x.fillRect(px, py, 1, 11); x.fillRect(px + 21, py, 1, 11); x.fillRect(px + 22, py + 3, 2, 5);
-        x.fillRect(px + 2, py + 2, Math.round(18 * pct / 100), 7);
-      }
-      function dot(px, py, on) { if (on) x.fillRect(px, py, 4, 4); else { x.fillRect(px, py, 4, 1); x.fillRect(px, py + 3, 4, 1); x.fillRect(px, py, 1, 4); x.fillRect(px + 3, py, 1, 4); } }
-      batt(2, 2, battery[s]);
-      if (s === 'R') {                                           // central, as ZMK's built-in status screen: battery,
-        bt(32, 2);                                               // Bluetooth profile, layer name, WPM number
-        x.font = 'bold 10px ui-monospace, monospace'; x.textBaseline = 'top';
-        x.fillText(String(profile), 42, 2);
-        var fnCaps = keyIndex['L:Fn'], fnOn = !!(fnCaps && fnCaps.some(function (c) { return c.userData.press; }));
-        x.fillText(fnOn ? 'Fn' : 'Base', 2, 20);
-        x.textAlign = 'right'; x.fillText(String(Math.round(wpm)), 126, 20); x.textAlign = 'left';
-      } else {                                                   // peripheral: battery and a link to the other half
-        bt(32, 2);
-        x.fillRect(42, 7, 10, 1); x.fillRect(49, 5, 1, 5); x.fillRect(50, 6, 1, 3);
-        var phase = Math.floor(t / 400) % 4;
-        for (var m = 0; m < 3; m++) if (m < phase) x.fillRect(58 + m * 6, 6, 3, 3);
-      }
-      o.tex.needsUpdate = true;
+  bootOleds();
+  function gridCanvas() {
+    var c = document.createElement('canvas'); c.width = 128 * OLED_PX; c.height = 32 * OLED_PX;
+    var x = c.getContext('2d'); x.fillStyle = '#020304'; x.fillRect(0, 0, c.width, c.height);
+    x.fillStyle = '#0c0f13';
+    for (var yy = 0; yy < 32; yy++) for (var xx = 0; xx < 128; xx++) x.fillRect(xx * OLED_PX + 1, yy * OLED_PX + 1, OLED_PX - 2, OLED_PX - 2);
+    return c;
+  }
+  function oledScreen(side) {
+    var c = document.createElement('canvas'); c.width = 128 * OLED_PX; c.height = 32 * OLED_PX;
+    var small = document.createElement('canvas'); small.width = 128; small.height = 32;
+    var tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy(); tex.minFilter = THREE.LinearMipmapLinearFilter;
+    oleds[side] = { c: c, small: small, tex: tex, fb: new Uint8Array(AirOled.FB_BYTES) };
+    return tex;
+  }
+  function hexRgb(h) { var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+  function paintOled(side) {
+    var o = oleds[side]; if (!o) return;
+    if (!oledGrid) oledGrid = gridCanvas();
+    var fb = o.fb, S = OLED_PX, x = o.c.getContext('2d'), sx = o.small.getContext('2d'), rgb = hexRgb(oledColor);
+    var img = sx.createImageData(128, 32), px = img.data;
+    x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; if ('filter' in x) x.filter = 'none';
+    x.drawImage(oledGrid, 0, 0);
+    x.fillStyle = oledColor;
+    for (var yy = 0; yy < 32; yy++) for (var xx = 0; xx < 128; xx++) {
+      if (!(fb[yy * 16 + (xx >> 3)] & (0x80 >> (xx & 7)))) continue;
+      x.fillRect(xx * S + 1, yy * S + 1, S - 2, S - 2);
+      var k = (yy * 128 + xx) * 4; px[k] = rgb[0]; px[k + 1] = rgb[1]; px[k + 2] = rgb[2]; px[k + 3] = 255;
+    }
+    sx.putImageData(img, 0, 0);
+    x.imageSmoothingEnabled = true; x.globalCompositeOperation = 'lighter';
+    if ('filter' in x) x.filter = 'blur(5px)';
+    x.globalAlpha = 0.45; x.drawImage(o.small, 0, 0, o.c.width, o.c.height);
+    if ('filter' in x) x.filter = 'blur(16px)';
+    x.globalAlpha = 0.3; x.drawImage(o.small, 0, 0, o.c.width, o.c.height);
+    if ('filter' in x) x.filter = 'none';
+    x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+    o.tex.needsUpdate = true;
+  }
+  var wpm = 0;
+  function oledStatus() {
+    var since = performance.now() - simStart, fnCaps = keyIndex['L:Fn'];
+    var fnOn = !!(fnCaps && fnCaps.some(function (c) { return c.userData.press; }));
+    var link = since < 2600 ? AirOled.LINK_OPEN : AirOled.LINK_CONNECTED;          // the halves find each other after boot
+    sims.R.set_status(91, since < 3000 ? 255 : 86, 0, link, fnOn ? 1 : 0, Math.round(wpm));
+    sims.L.set_status(86, 255, 0, link, 0, 0);
+  }
+  var oledLast = 0;
+  function stepOleds(t) {
+    if (t - oledLast < 40) return false;                                           // 25 frames a second, as on the keyboard
+    var dt = oledLast ? Math.min(2000, Math.round(t - oledLast)) : 0, changed = false; oledLast = t;
+    oledStatus();
+    ['R', 'L'].forEach(function (s) {
+      var need = false, left = dt;                     // catch up in 100 ms steps if the page ran slowly, as the firmware would
+      do { var d = Math.min(100, left); if (sims[s].step(d)) need = true; left -= d; } while (left > 0);
+      if (need && oleds[s]) { sims[s].draw(oleds[s].fb); paintOled(s); changed = true; }
     });
+    return changed;
   }
   function oledModule(side, d) {
     // the module sits in the tilted bezel: build it in slope coordinates (y = along the slope, z = out of the face), then tilt
@@ -388,6 +425,8 @@ details.more[open] summary::after { content: "–"; }
     add(g, mesh(boxZ(O.glass_l - 0.6, O.glass_w - 0.5, O.glass_t), M.glass), gx, sc, nG);
     var scr = new THREE.Mesh(new THREE.PlaneGeometry(22.4, 5.6), new THREE.MeshBasicMaterial({ map: oledScreen(side), toneMapped: false }));
     scr.position.set(gx, sc, -O.lip + 0.01); g.add(scr);
+    var glassTop = new THREE.Mesh(new THREE.PlaneGeometry(O.glass_l - 0.6, O.glass_w - 0.5), M.glassTop);
+    glassTop.position.set(gx, sc, -O.lip + 0.03); glassTop.renderOrder = 2; g.add(glassTop);
     for (var i = 0; i < 4; i++) add(g, mesh(cylZ(0.6, 0.1, 12), M.header), c[0] + dir * (O.pcb_l / 2 - 1.6), sc - 3.81 + 2.54 * i, nP - 0.05);
     var w = new THREE.Group(); w.add(g); g.position.set(0, 0, 0);
     w.position.set(0, P.y_f, P.z_f); w.rotation.x = P.theta;
@@ -447,7 +486,7 @@ details.more[open] summary::after { content: "–"; }
         sw.add(rod([x - D.STAB_DX, y + 5.6, PB - 2.6], [x + D.STAB_DX, y + 5.6, PB - 2.6], 0.4, M.steel));
       }
       var cap = add(caps, mesh(capGeo(w), capMat), x, y, PT + CAP.skirt);
-      cap.userData = { name: 'Keycap ' + k[3] + (w > 1 ? ' (' + w + 'u)' : ''), z0: PT + CAP.skirt, press: 0, stem: st };
+      cap.userData = { name: 'Keycap ' + k[3] + (w > 1 ? ' (' + w + 'u)' : ''), z0: PT + CAP.skirt, press: 0, stem: st, pos: k[6] };
       pickables.push(cap);
       var id = s + ':' + k[3]; (keyIndex[id] = keyIndex[id] || []).push(cap);
     });
@@ -540,6 +579,21 @@ details.more[open] summary::after { content: "–"; }
     try { var k = +localStorage.getItem(storeKey); if (k > 0 && k < list.length) el.querySelectorAll('.sw')[k].click(); } catch (e) {}
   }
   swatches($('caseSw'), CASES, shellMat, 'air75-case'); swatches($('capSw'), CAPS, capMat, 'air75-caps');
+  (function () {
+    var el = $('oledSw');
+    OLED_COLORS.forEach(function (c, i) {
+      var b = document.createElement('button'); b.className = 'sw'; b.style.background = c[1];
+      b.setAttribute('aria-label', c[0] + ' screen'); b.title = c[0]; b.setAttribute('aria-pressed', String(i === 0));
+      b.addEventListener('click', function () {
+        oledColor = c[1]; el.querySelectorAll('.sw').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+        el.querySelector('.swname').textContent = c[0]; paintOled('R'); paintOled('L'); dirty = true;
+        try { localStorage.setItem('air75-oled', i); } catch (e) {}
+      });
+      el.appendChild(b);
+    });
+    var n = document.createElement('span'); n.className = 'swname'; n.textContent = OLED_COLORS[0][0]; el.appendChild(n);
+    try { var k = +localStorage.getItem('air75-oled'); if (k > 0 && k < OLED_COLORS.length) el.querySelectorAll('.sw')[k].click(); } catch (e) {}
+  })();
 
   // ---------- camera ----------
   var anim = null;
@@ -603,7 +657,7 @@ details.more[open] summary::after { content: "–"; }
       setVis({}); ui.xray.value = 0; layout();
       c = D.R.comp.oled; tgt = new THREE.Vector3(c[0] + D.R.ox, c[1], PT + 3); r = 75;
       flyTo([tgt.x + r * 0.1, tgt.y - r * 0.55, tgt.z + r * 0.8], tgt);
-      msg = '0.91" OLED in a bezel tilted ' + Math.round(D.R.oled_pose.theta * 180 / Math.PI) + '° toward you. Right half: battery, Bluetooth profile, layer and WPM. Left half: battery and link.';
+      msg = 'Both screens, running the firmware\'s own drawing code. Right: bars jump where you type, WPM in big digits, profile, layer, both batteries. Left: a live key map with ripples and its battery. Type to drive them.'; bootOleds();
     } else {
       setVis({ shell: false, sw: false, caps: false }); ui.xray.value = 0; layout();
       c = D.L.comp[part]; tgt = new THREE.Vector3(c[0], c[1], D.BASE + 2); r = part === 'mcu' ? 56 : 80;
@@ -635,12 +689,17 @@ details.more[open] summary::after { content: "–"; }
     return keyIndex['L:' + m[1]] || keyIndex['R:' + m[1]];
   }
   var presses = [];
-  function press(code) {
-    var caps = lookup(code); if (!caps) return;
-    caps.forEach(function (c) { c.userData.press = 1; });
-    presses.push(performance.now());
+  function pressCaps(caps, down) {
+    if (!caps) return;
+    caps.forEach(function (c) {
+      if (c.userData.press === (down ? 1 : 0)) return;
+      c.userData.press = down ? 1 : 0;
+      sims.R.key(c.userData.pos, down); sims.L.key(c.userData.pos, down);       // the right half sees every key, the left only its own
+    });
+    if (down) presses.push(performance.now());
   }
-  function release(code) { var caps = lookup(code); if (caps) caps.forEach(function (c) { c.userData.press = 0; }); }
+  function press(code) { pressCaps(lookup(code), true); }
+  function release(code) { pressCaps(lookup(code), false); }
   window.addEventListener('keydown', function (e) {
     if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
     if (e.repeat) return; press(e.code);
@@ -654,6 +713,14 @@ details.more[open] summary::after { content: "–"; }
     clearTimeout(demoTimer); if (!on) return;
     var i = 0;
     (function step() {
+      if (i > 0 && i % DEMO.length === 0) {                                      // hold Fn and tap F1, F2
+        var fn = keyIndex['L:Fn']; i++;
+        pressCaps(fn, true);
+        setTimeout(function () { press('Digit1'); }, 150); setTimeout(function () { release('Digit1'); }, 230);
+        setTimeout(function () { press('Digit2'); }, 380); setTimeout(function () { release('Digit2'); }, 460);
+        setTimeout(function () { pressCaps(fn, false); }, 700);
+        demoTimer = setTimeout(step, 950); return;
+      }
       var ch = DEMO[i++ % DEMO.length], code = ch === ' ' ? 'Space' : 'Key' + ch.toUpperCase();
       press(code); setTimeout(function () { release(code); }, 70);
       demoTimer = setTimeout(step, 90 + Math.random() * 110);
@@ -761,8 +828,8 @@ details.more[open] summary::after { content: "–"; }
       lastOled = t;
       var now = performance.now(); presses = presses.filter(function (p) { return now - p < 6000; });
       var target = presses.length / 5 * 60 / 6; wpm += (target - wpm) * 0.25; $('wpm').textContent = Math.round(wpm);
-      drawOleds(t); if (vis.screens) dirty = true;
     }
+    if (stepOleds(t) && vis.screens) dirty = true;
     if (dirty) { renderer.render(scene, camera); dirty = false; }
   }
   window.__air75 = { scene: scene };
