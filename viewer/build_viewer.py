@@ -1,10 +1,11 @@
 import os, sys, json, base64
 import numpy as np, trimesh
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "case"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "cad"))
 import geom as G
 from layout import U
 
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "out", "stl")
+import paths
+OUT = paths.STL
 
 def enc(a):
     return base64.b64encode(np.ascontiguousarray(a).tobytes()).decode()
@@ -16,7 +17,7 @@ def mesh(name):
 import oled_art
 import tents as TN
 POS = {(k["row"], round(k["x0"], 3)): i for i, k in enumerate(G._global()["allk"])}   # keymap position of each key
-WIRING = json.load(open(os.path.join(OUT, "..", "wiring.json")))
+WIRING = json.load(open(os.path.join(paths.BUILD, "wiring.json")))
 data = dict(H=G.H_TOTAL, PLATE=G.PLATE_T, BASE=G.BASE_T, SWH=G.SW_HOLE, U=U, MCU=G.MCU, BATT=G.BATT,
             MAG=dict(r=G.MAG_D/2, t=G.MAG_T, z=G.MAG_Z), SLIDE=G.SLIDE, STAB_DX=G.STAB_DX,
             KS33=G.KS33, CAP=G.CAP, OLED=G.OLED, EDGE_R=G.EDGE_R, EDGE_RB=G.EDGE_RB, T=G.thickness(), INTERIOR=G.INTERIOR, FOOT_T=G.FOOT_T, PIN=G.WIRE,

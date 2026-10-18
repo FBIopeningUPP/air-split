@@ -881,7 +881,8 @@ details.more[open] summary::after { content: "–"; }
     var aspect0 = canvas.clientWidth / canvas.clientHeight;
     var aspect = { 'screen': aspect0, '16:9': 16 / 9, '1:1': 1, '4:5': 4 / 5 }[snapOpt.shape];
     var long = +snapOpt.size, w = aspect >= 1 ? long : Math.round(long * aspect), h = aspect >= 1 ? Math.round(long / aspect) : long;
-    if (!snapR) { snapR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); snapR.outputEncoding = THREE.sRGBEncoding; snapR.toneMapping = renderer.toneMapping; snapR.toneMappingExposure = renderer.toneMappingExposure; }
+    if (!snapR) { snapR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); snapR.outputEncoding = THREE.sRGBEncoding; snapR.toneMapping = renderer.toneMapping; }
+    snapR.toneMappingExposure = renderer.toneMappingExposure;
     snapR.setPixelRatio(1); snapR.setSize(w, h, false); snapR.clippingPlanes = renderer.clippingPlanes; snapR.setClearColor(0x000000, 0);
     var cam = camera.clone(); cam.aspect = w / h;
     if (aspect < aspect0) cam.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * aspect0 / aspect));
@@ -892,6 +893,11 @@ details.more[open] summary::after { content: "–"; }
     if (snapOpt.bg === 'white') { x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h); }
     if (snapOpt.bg === 'black') { x.fillStyle = '#0b0c0e'; x.fillRect(0, 0, w, h); }
     x.drawImage(snapR.domElement, 0, 0);
+    if (snapOpt.out) {                                                     // scripted: downsample (supersampled renders) and pick the format
+      var o2 = document.createElement('canvas'); o2.width = snapOpt.out[0]; o2.height = snapOpt.out[1];
+      var x2 = o2.getContext('2d'); x2.imageSmoothingEnabled = true; x2.imageSmoothingQuality = 'high'; x2.drawImage(out, 0, 0, o2.width, o2.height);
+      return { url: o2.toDataURL(snapOpt.fmt || 'image/png', 0.9), w: o2.width, h: o2.height };
+    }
     return { url: out.toDataURL('image/png'), blob: new Promise(function (res) { out.toBlob(res, 'image/png'); }), w: w, h: h };
   }
   function toast(t) { var el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove('show'); }, 2200); }
@@ -965,7 +971,17 @@ details.more[open] summary::after { content: "–"; }
     }
     if (dirty) { renderer.render(scene, camera); dirty = false; }
   }
-  window.__air75 = { scene: scene };
+  // hooks for scripts (viewer/render.js uses these to make the README images)
+  window.__air75 = {
+    scene: scene, camera: camera, controls: controls, ui: ui, THREE: THREE,
+    setView: setView, setCam: setCam, setLights: setLights, setTent: setTent, closeUp: closeUp, layout: layout,
+    press: press, release: release, viewPose: viewPose, center: center,
+    coverAt: function (ms) { coverT0 = performance.now() - ms; },
+    stop: function () { anim = null; },                                     // cancel a camera flight so a script's camera stays put
+    cutX: function () { var jb = joinedBounds(); return jb[0] + (jb[1] - jb[0]) * ui.cut.value / 100; },
+    redraw: function () { dirty = true; },
+    snapshot: function (o) { var keep = Object.assign({}, snapOpt); Object.assign(snapOpt, o || {}); var s = snapshot(); Object.assign(snapOpt, keep); return s.url; }
+  };
   resize(); layout(); visibility(); setView('asm'); setCam('iso', true);
   $('loading').classList.add('done');
   requestAnimationFrame(frame);

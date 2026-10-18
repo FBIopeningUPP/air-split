@@ -1,0 +1,10 @@
+# Python packages for the CAD pipeline (cad/), checks and drawings. Python 3.11+.
+numpy>=2.0
+scipy>=1.12
+shapely>=2.0
+trimesh>=4.0
+manifold3d>=3.0
+cadquery-ocp>=7.7        # OpenCascade: STEP files, chamfers
+rtree>=1.2               # trimesh proximity queries in verify.py
+matplotlib>=3.8
+pillow>=10.0

@@ -1,8 +1,8 @@
 /*
  * Air75 Split animated OLED screens: JavaScript twin of zmk-config/src/air75_oled/render.c.
- * Same integer maths, same order of operations. case/oled_check.py runs both on one script of key presses and
+ * Same integer maths, same order of operations. cad/oled_check.py runs both on one script of key presses and
  * checks every frame matches byte for byte, so the viewer shows exactly what the keyboard will.
- * AirOled.create(ART, role, seed) -> state; ART = { font, keys } from case/oled_art.py.
+ * AirOled.create(ART, role, seed) -> state; ART = { font, keys } from cad/oled_art.py.
  */
 (function (root) {
   var W = 128, H = 32, FB_BYTES = W * H / 8, BARS = 27, RINGS = 6, MAXKEYS = 32, BOOT_MS = 1600;
