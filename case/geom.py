@@ -456,6 +456,9 @@ def base_ops(h):
     for fx, fy in feet(h):
         ops.append(("sub", "cyl", (fx, fy, 4.1), -0.5, 0.5))
     ops.append(("sub", "poly", base_label(h), -0.5, BASE_LABEL_DEPTH))   # name engraved underneath
+    import tents                                            # hidden magnets for the tenting wedges, under 0.5 mm of skin
+    for x, y in tents.magnets(h):
+        ops.append(("sub", "cyl", (x, y, tents.MAG_R), BASE_T - tents.MAG_POCKET, BASE_T + 0.5))
     return ops
 
 BASE_LABEL_DEPTH = 0.4

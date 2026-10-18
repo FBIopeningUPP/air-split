@@ -69,6 +69,22 @@ Two snap-on covers, one per half, for carrying the keyboard in a bag (`out/stl/p
 - Print in smoke or clear PETG so the keys and screens show through: top face down, no supports, 0.2 mm layers, 4 walls (the 1.6 mm walls print solid). About 112 g for the pair.
 - Snap fit depends on your printer. If a cover is too tight, sand the hooks lightly; if too loose, a thin strip of tape on the hook face firms it up.
 
+## Magnetic tenting wedges
+
+For split use: a wedge under the inner edge of each half tips it up toward the middle, which keeps your wrists less twisted. Pick 5°, 10° or 15° (`out/stl/print_ready/left_tent_10.stl`, `right_tent_10.stl` and so on); the viewer's **Tenting** buttons show each one.
+
+| Angle | Inner edge lifted (left / right) |
+|---|---|
+| 5° | 12 / 15 mm |
+| 10° | 23 / 31 mm |
+| 15° | 36 / 47 mm |
+
+- Each wedge snaps on with two 5 x 1 mm magnets. Their partners sit in pockets on the inside face of the base, under 0.5 mm of plastic, so nothing shows underneath and the base looks the same without a wedge.
+- The wedge has two sockets that fit over the half's inner rubber feet, so it cannot slide while you type. The half rests on its outer feet and the wedge; its weight sits well inside that footprint, so it does not rock.
+- Glue the base magnets first, then put each wedge magnet on top of its partner (so the pair attracts), dab glue in the wedge pocket and press the wedge on: it picks the magnets up the right way round.
+- Magnets: 4 in the bases, plus 4 for each pair of wedges you print. Print only the angles you will use.
+- Print top face down (the face that meets the base), no supports. The pairs are solid-looking but print with normal infill: about 52, 101 and 151 cm³ of outline for 5°, 10° and 15°, so 15 to 20 % infill keeps them light. A strip of silicone tape on the underside stops them sliding on a smooth desk.
+
 ## How the halves join
 
 - The seam is a staircase that follows key-cell edges, so no switch is cut. Gap is 0.2 mm.
@@ -100,7 +116,7 @@ Two snap-on covers, one per half, for carrying the keyboard in a bag (`out/stl/p
 ## Files
 
 ```
-out/stl/            STLs in their assembled position: left/right shell, base, OLED bezel, key cover, fit_test_plate
+out/stl/            STLs in their assembled position: left/right shell, base, OLED bezel, key cover, tenting wedges (5/10/15°), fit_test_plate
 out/stl/print_ready/  the same parts already turned the way they go on the bed: open in the slicer and print
 out/step/           same parts as STEP
 out/*.png           top views, thickness section, wiring sheets (every wire and diode, real routes)
@@ -178,6 +194,7 @@ Every part prints with **no supports**. Open the files in `out/stl/print_ready/`
 | Base (x2) | flat, outside face down | foot recesses and countersinks bridge or slope at 45° or less |
 | OLED bezel (x2) | window face down | the face around the screen gets the bed finish; the pegs end up on top |
 | Key cover (x2) | top face down | the top gets the bed finish; skirt and snap tabs grow straight up |
+| Tenting wedge (x2 per angle) | top face down | the face that meets the base gets the bed finish; foot sockets and magnet pockets are short bridges |
 | Fit test plate | flat | |
 
 How the shapes help:

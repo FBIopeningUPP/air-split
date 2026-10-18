@@ -305,7 +305,7 @@ def make_cover(name, h):
 def print_pose(name, tm):
     """Copy of a part turned the way it should sit on the bed, resting on z = 0, centred on x/y = 0."""
     t = tm.copy()
-    if name.endswith("_shell") or name.endswith("_cover"):   # plate / top face down: it gets the smooth bed finish
+    if name.endswith("_shell") or name.endswith("_cover") or "_tent_" in name:   # plate / top face down: it gets the smooth bed finish
         t.apply_transform(trimesh.transformations.rotation_matrix(math.pi, [0, 1, 0]))
     elif name.endswith("_oled_bezel"):                 # window face down: tilt the slope flat, then flip
         th = math.radians(G.OLED_TILT)
@@ -329,6 +329,9 @@ if __name__ == "__main__":
         results.append(make(f"{nm}_base", G.base_ops(h)))
         results.append(make(f"{nm}_oled_bezel", G.bezel_ops(h)))
         results.append(make_cover(f"{nm}_cover", h))
+        import tents
+        for a in tents.ANGLES:
+            results.append(make(f"{nm}_tent_{a}", tents.wedge_ops(h, a)))
     results.append(make("fit_test_plate", G.fit_test_ops()))
     write_print_ready()
     for r in results:

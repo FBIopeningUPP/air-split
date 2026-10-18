@@ -142,6 +142,33 @@ for s_, nm in (("L", "left"), ("R", "right")):
     check(f"{s_} power switch reachable through the cover's notch",
           not cv.contains(np.array([[sl["cx"], ob[3] + CV.CLEAR + CV.WALL / 2, 4.0]]))[0])
 
+# 6e. magnetic tenting wedges
+import tents as TN
+for s_, nm in (("L", "left"), ("R", "right")):
+    h = G.half(s_)
+    bs = trimesh.load(OUT + f"{nm}_base.stl"); sh = trimesh.load(OUT + f"{nm}_shell.stl")
+    feet_m = _m.Manifold()
+    for fx, fy in G.feet(h):
+        feet_m = feet_m + _m.Manifold.cylinder(G.FOOT_T, TN.FOOT_R, TN.FOOT_R, 48).translate((fx, fy, 0.5 - G.FOOT_T))
+    mags_ok = all(not bs.contains(np.array([[x, y, G.BASE_T - 0.3]]))[0] and bs.contains(np.array([[x, y, TN.SKIN / 2]]))[0]
+                  for x, y in TN.magnets(h))
+    check(f"{s_} base has {len(TN.magnets(h))} hidden magnet pockets under {TN.SKIN:.1f} mm of plastic", mags_ok)
+    for a in TN.ANGLES:
+        w = trimesh.load(OUT + f"{nm}_tent_{a}.stl")
+        ov = (_man(w) ^ _man(bs)).volume() + (_man(w) ^ _man(sh)).volume() + (_man(w) ^ feet_m).volume()
+        dz = TN.desk_plane(h, a)
+        gap = w.vertices[:, 2] - np.array([dz(x) for x in w.vertices[:, 0]])
+        on_desk = abs(gap.min()) < 1e-3 and (np.abs(gap) < 1e-3).sum() >= 4
+        wm = all(not w.contains(np.array([[x, y, -0.5]]))[0] for x, y in TN.magnets(h))
+        check(f"{s_} {a} deg wedge: watertight, fits the base and feet ({ov:.3f} mm3), flat on the desk, magnets line up",
+              w.is_watertight and ov < 0.05 and on_desk and wm)
+    # balance: the half's centre of mass must sit between the pivot and the wedge
+    com = (sh.center_mass * sh.volume + bs.center_mass * bs.volume) / (sh.volume + bs.volume)
+    fpb = TN.footprint(h).bounds
+    far = fpb[2] if s_ == "L" else fpb[0]
+    lo, hi = sorted((TN.pivot_x(h), far))
+    check(f"{s_} tented half is stable (centre of mass x {com[0]:.1f} between pivot {TN.pivot_x(h):.1f} and wedge {far:.1f})", lo < com[0] < hi)
+
 # 7. printability: every part as it sits in out/stl/print_ready
 import printcheck
 for name, ok, msg in printcheck.run():

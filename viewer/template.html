@@ -149,6 +149,10 @@ details.more[open] summary::after { content: "–"; }
       <div class="seg two" id="lights"><button data-l="night" aria-pressed="true">Night</button><button data-l="day" aria-pressed="false">Day</button></div>
     </div>
     <div class="group">
+      <div class="label">Tenting <small>magnetic wedges</small></div>
+      <div class="seg four" id="tent"><button data-t="0" aria-pressed="true">Flat</button><button data-t="5" aria-pressed="false">5°</button><button data-t="10" aria-pressed="false">10°</button><button data-t="15" aria-pressed="false">15°</button></div>
+    </div>
+    <div class="group">
       <div class="label">Parts <small>tap to hide</small></div>
       <div class="chips" id="parts"></div>
     </div>
@@ -506,6 +510,12 @@ details.more[open] summary::after { content: "–"; }
     var covers = new THREE.Group(), cv = new THREE.Mesh(geoSoft(d.cover), coverMat);
     cv.userData.name = 'Snap-on key cover, ' + (s === 'L' ? 'left' : 'right') + ' half: smoke PETG, 1 mm above the keycaps, 4 snap tabs';
     cv.renderOrder = 3; covers.add(cv); pickables.push(cv);
+    var tents = {};
+    Object.keys(d.tents).forEach(function (a) {
+      var tm = new THREE.Mesh(geoSoft(d.tents[a]), shellMat); tm.visible = false;
+      tm.userData.name = 'Tenting wedge, ' + a + '° (snaps on with 2 hidden magnets, sockets over the inner rubber feet)';
+      tents[a] = tm; pickables.push(tm);
+    });
     var base = new THREE.Group(); var bm = new THREE.Mesh(geoSoft(d.base), baseMat); bm.userData.name = 'Printed base'; base.add(bm);
     d.feet.forEach(function (f) { add(base, mesh(cylZ(4.0, D.FOOT_T, 28), M.foot), f[0], f[1], 0.5 - D.FOOT_T); });
     var stems = new THREE.Group();
@@ -565,8 +575,8 @@ details.more[open] summary::after { content: "–"; }
       cyl.rotation.z = Math.PI / 2; cyl.position.set(m[0] + (s === 'L' ? -0.6 : 0.6), m[1], D.MAG.z); cyl.userData.name = 'Magnet 5 × 1 mm N52'; mags.add(cyl); pickables.push(cyl);
     });
     sw = mergeByMaterial(sw); sw.add(stems);
-    g.add(shell, base, sw, caps, elec, wire, mags, screens, covers); scene.add(g);
-    halves[s] = { g: g, shell: shell, base: base, sw: sw, caps: caps, elec: elec, wire: wire, mags: mags, screens: screens, covers: covers };
+    g.add(shell, base, sw, caps, elec, wire, mags, screens, covers); Object.keys(tents).forEach(function (a) { g.add(tents[a]); }); scene.add(g);
+    halves[s] = { g: g, shell: shell, base: base, sw: sw, caps: caps, elec: elec, wire: wire, mags: mags, screens: screens, covers: covers, tents: tents };
   });
   var jb0 = [Math.min(D.L.bounds[0], D.R.bounds[0] + D.R.ox), Math.max(D.L.bounds[2], D.R.bounds[2] + D.R.ox)];
   var shadow = shadowPlane((jb0[1] - jb0[0]) * 1.5, (D.L.bounds[3] - D.L.bounds[1]) * 1.9);
@@ -582,7 +592,14 @@ details.more[open] summary::after { content: "–"; }
   function joinedBounds() { var g = +ui.gap.value; return [Math.min(D.L.bounds[0], D.R.bounds[0] + D.R.ox + g), Math.max(D.L.bounds[2], D.R.bounds[2] + D.R.ox + g)]; }
   function layout() {
     var gap = +ui.gap.value, e = +ui.explode.value;
-    halves.R.g.position.set(D.R.ox + gap, 0, 0);
+    // tenting: each half tips about the outer edge of its outer feet, on its wedge
+    ['L', 'R'].forEach(function (s) {
+      var g = halves[s].g, phi = (s === 'L' ? -1 : 1) * tentAngle * Math.PI / 180, axis = new THREE.Vector3(0, 1, 0);
+      var piv = new THREE.Vector3(D[s].pivot, 0, 0.5 - D.FOOT_T), rp = piv.clone().applyAxisAngle(axis, phi);
+      g.rotation.set(0, phi, 0);
+      g.position.set(s === 'R' ? D.R.ox + gap : 0, 0, 0).add(piv).sub(rp);
+      Object.keys(halves[s].tents).forEach(function (a) { halves[s].tents[a].visible = +a === tentAngle; });
+    });
     ['L', 'R'].forEach(function (s) {
       var h = halves[s]; h.base.position.z = -e; h.sw.position.z = e * 0.35; h.caps.position.z = e * 0.75; h.elec.position.z = -e * 0.45; h.wire.position.z = -e * 0.2; h.screens.position.z = e * 0.15; h.covers.position.z = e > 0 ? e * 0.9 : coverLift;
     });
@@ -594,7 +611,7 @@ details.more[open] summary::after { content: "–"; }
     $('o-xray').textContent = Math.round(xr * 100) + '%';
     shadow.visible = e === 0 && c === 0;
   }
-  var coversOn = false, showcaseOn = false, coverLift = 0, coverT0 = 0;
+  var coversOn = false, showcaseOn = false, coverLift = 0, coverT0 = 0, tentAngle = 0;
   function visibility() { ['L', 'R'].forEach(function (s) { PARTS.forEach(function (p) { halves[s][p[0]].visible = vis[p[0]]; }); halves[s].covers.visible = coversOn; }); syncChips(); }
 
   var partsEl = $('parts');
@@ -643,6 +660,14 @@ details.more[open] summary::after { content: "–"; }
     try { localStorage.setItem('air75-lights', mode); } catch (e) {}
   }
   document.querySelectorAll('#lights button').forEach(function (b) { b.addEventListener('click', function () { setLights(b.dataset.l); }); });
+  function setTent(a) {
+    tentAngle = a;
+    document.querySelectorAll('#tent button').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.dataset.t === a)); });
+    if (a > 0 && +ui.gap.value < 40) ui.gap.value = 50;
+    layout(); dirty = true;
+    if (a > 0) { modeEl.textContent = 'Tented ' + a + '°: a magnetic wedge under the inner edge of each half lifts it ' + D.TENT_LIFT[a].join(' / ') + ' mm (left / right). The halves rest on their outer feet and the wedge.'; setCam('front'); }
+  }
+  document.querySelectorAll('#tent button').forEach(function (b) { b.addEventListener('click', function () { setTent(+b.dataset.t); }); });
   (function () { var m = 'night'; try { var l = localStorage.getItem('air75-lights'); if (l === 'day' || l === 'night') m = l; } catch (e) {} setLights(m); })();
   (function () {
     var el = $('oledSw');
@@ -715,6 +740,7 @@ details.more[open] summary::after { content: "–"; }
     if (v === 'section') { setVis({}); ui.cut.value = 26; cam = 'side'; }
     if (v === 'apart') { setVis({ caps: false }); ui.gap.value = 60; ui.xray.value = 70; }
     var wasShow = showcaseOn; coversOn = v === 'covers'; showcaseOn = v === 'showcase';
+    tentAngle = 0; document.querySelectorAll('#tent button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.t === '0')); });
     if (v === 'covers') { setVis({}); ui.gap.value = 50; coverT0 = performance.now(); }
     if (v === 'showcase') { setVis({}); setLights('night'); }
     layout(); modeEl.textContent = MODES[v];
