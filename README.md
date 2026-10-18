@@ -44,6 +44,7 @@ Left half is everything left of the `||`. The Fn key is the last key in the left
 - One 0.91" 128 x 32 SSD1306 module per half, on the SuperMini's I2C pins: **SDA = D2, SCL = D3, VCC = 3V3, GND**.
 - Each sits in a small printed bezel behind the top row, tilted 15° toward you so you can read it while typing. The bezel's front edge is 1.0 mm above the deck and its back edge 13.0 mm above the desk, still below the keycap tops (15.4 mm).
 - The bezel is its own part so the case prints without supports. It prints window-face-down (so the face around the screen gets the smooth bed finish), sits flat on the deck, and locates on two 1.1 mm pegs. The lower half of the module drops through a slot in the deck.
+- The bezel is a tapered pod: its ends slope down onto the deck at 48°, its back at 58°, with rounded corners, so it blends into the case instead of sitting on it like a box. The ends are close to the gentlest slope that still prints face-down without supports (46°); the back is as gentle as the deck behind it allows. Its back wall is solid all the way down to the deck.
 - The glass sits in a pocket under a 0.4 mm lip with a 26.0 x 8.4 mm window. Push the module into the bezel from underneath, then put a dab of hot glue at each end of its circuit board.
 - Thread the 4 wires through the deck slot, then glue the bezel down with a thin line of CA glue (or 0.2 mm double-sided tape) around its base.
 - Remove any header pins and solder the 4 wires straight to the pads from the back of the module.
@@ -53,7 +54,7 @@ Left half is everything left of the `||`. The Fn key is the last key in the left
 
 - The seam is a staircase that follows key-cell edges, so no switch is cut. Gap is 0.2 mm.
 - 6 magnet pockets per half (5 x 1 mm N52 discs, pockets 5.2 mm wide, 1.1 mm deep), including one in the back bay. They face each other across the seam.
-- A V-shaped tongue on the right half slides into a matching groove on the left half, about 6 to 7 mm above the desk. It stops the halves stepping up or down against each other. Its 45° flanks print cleanly without supports.
+- A V-shaped tongue on the right half slides into a matching groove on the left half, about 6 to 7 mm above the desk. It stops the halves stepping up or down against each other. Its 45° flanks print cleanly without supports. Both stop 1.6 to 2.0 mm inside the outer wall, so from outside you only see the hairline.
 - The 2.5 mm rounded edge runs straight across the seam and both seam faces are flat, so joined, the halves read as one piece with just a hairline between them.
 - To join: line the halves up side by side, then push them together horizontally.
 - **Magnet polarity:** glue the magnets so each pair attracts. Stack them on the bench first and mark the faces with a pen before gluing.
@@ -160,7 +161,7 @@ How the shapes help:
 
 - **Rounded edges** (2.5 mm top, 0.8 mm bottom) are "teardrop" rounds: a true circle, but never steeper than 45° next to the face that sits on the bed, so they print face-down without drooping. They are modelled as true curves (one ring every 3° of arc, real curved faces in the STEP files), so the only steps left are your printer's layers: 0.2 mm is fine, 0.12 mm or 0.1 mm is smoother.
 - **Magnet pockets and the reset hole** are teardrop-shaped holes, so their tops (which face down in the printer) never overhang more than 45°.
-- **Tongue and groove** have 45° V flanks. The USB-C and power slots are short flat bridges (under 12 mm).
+- **Tongue and groove** have 45° V flanks. The USB-C opening has rounded upper corners and 45° chamfered lower corners (the lower ones face down while printing). The USB-C and power slots are short flat bridges (under 12 mm).
 - `verify.py` scans every print-ready part for faces that would need support: at most 0.4 mm² of steep surface per part (rounding noise), widest flat bridge 8.2 mm (the foot recesses).
 
 Settings: PLA or PETG, 0.2 mm layers, 3 to 4 walls, 15 to 20 % infill, a smooth PEI or glass bed for a glossy top. About 87 g of filament for everything. For an even smoother look, lightly sand the rounded edges with 400 then 800 grit.

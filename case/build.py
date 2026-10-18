@@ -35,6 +35,8 @@ def skin_mesh(arg):
     return V, np.array(F, dtype=np.uint32)
 
 def m_prim(kind, arg, z0, z1):
+    if kind == "hull":
+        return m.Manifold.hull_points([tuple(map(float, q)) for q in arg])
     if kind == "skin":
         V, F = skin_mesh(arg)
         return m.Manifold(m.Mesh(vert_properties=V.astype(np.float32), tri_verts=F))
@@ -126,7 +128,30 @@ def rrect_wire(b, r, inset, z):
         mw.Add(BRepBuilderAPI_MakeEdge(arcs[i][1], arcs[(i + 1) % 4][0]).Edge())
     return mw.Wire()
 
+def hull_solid(points):
+    """Convex hull as an OpenCascade solid: the hull's triangles sewn into a shell, then coplanar faces merged."""
+    from scipy.spatial import ConvexHull
+    from OCP.BRepBuilderAPI import BRepBuilderAPI_Sewing, BRepBuilderAPI_MakeSolid
+    from OCP.ShapeUpgrade import ShapeUpgrade_UnifySameDomain
+    from OCP.TopoDS import TopoDS
+    P = np.array(points, dtype=float)
+    hull = ConvexHull(P)
+    sew = BRepBuilderAPI_Sewing(1e-6)
+    c = P.mean(axis=0)
+    for tri, eq in zip(hull.simplices, hull.equations):
+        a, b, d = P[tri[0]], P[tri[1]], P[tri[2]]
+        if np.dot(np.cross(b - a, d - a), eq[:3]) < 0:      # wind each triangle with its normal pointing out
+            b, d = d, b
+        poly = BRepBuilderAPI_MakePolygon(gp_Pnt(*a), gp_Pnt(*b), gp_Pnt(*d), True)
+        sew.Add(BRepBuilderAPI_MakeFace(poly.Wire(), True).Face())
+    sew.Perform()
+    solid = BRepBuilderAPI_MakeSolid(TopoDS.Shell(sew.SewedShape())).Solid()
+    u = ShapeUpgrade_UnifySameDomain(solid, True, True, False); u.Build()
+    return u.Shape()
+
 def o_prim(kind, arg, z0, z1):
+    if kind == "hull":
+        return hull_solid(arg)
     if kind == "skin":
         ts = BRepOffsetAPI_ThruSections(True, True, 1e-6)     # solid, ruled between the rings
         for z, d in arg["prof"]:

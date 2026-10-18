@@ -1,3 +1,4 @@
+import math
 import os, collections
 import geom as G
 from layout import build, ascii_layout, validate
@@ -9,6 +10,8 @@ _, info = validate(keys)
 sizes = collections.Counter(k["w"] for k in keys)
 cap_rows = "\n".join(f"| {w:g}u | {n} |" for w, n in sorted(sizes.items()))
 hL, hR = G.half("L"), G.half("R")
+_P = hL["oled_pose"]
+BEZEL_BACK = math.degrees(math.atan2(_P["z_b"] - G.H_TOTAL, G.bezel_back_foot(hL) - _P["y_b"]))
 bL, bR = hL["bounds"], hR["bounds"]
 OX = hR["ox"]
 JW = max(bL[2], bR[2] + OX) - min(bL[0], bR[0] + OX)
@@ -73,6 +76,7 @@ Left half is everything left of the `||`. The Fn key is the last key in the left
 - One 0.91" 128 x 32 SSD1306 module per half, on the SuperMini's I2C pins: **SDA = D2, SCL = D3, VCC = 3V3, GND**.
 - Each sits in a small printed bezel behind the top row, tilted {G.OLED_TILT:.0f}° toward you so you can read it while typing. The bezel's front edge is {P['z_f'] - G.H_TOTAL:.1f} mm above the deck and its back edge {P['z_b']:.1f} mm above the desk, still below the keycap tops ({T['cap_top']:.1f} mm).
 - The bezel is its own part so the case prints without supports. It prints window-face-down (so the face around the screen gets the smooth bed finish), sits flat on the deck, and locates on two {2*G.PEG_R:.1f} mm pegs. The lower half of the module drops through a slot in the deck.
+- The bezel is a tapered pod: its ends slope down onto the deck at {math.degrees(math.atan(1 / G.BEZEL_END_RUN)):.0f}°, its back at {BEZEL_BACK:.0f}°, with rounded corners, so it blends into the case instead of sitting on it like a box. The ends are close to the gentlest slope that still prints face-down without supports (46°); the back is as gentle as the deck behind it allows. Its back wall is solid all the way down to the deck.
 - The glass sits in a pocket under a {G.OLED['lip']} mm lip with a {G.OLED['win_l']} x {G.OLED['win_w']} mm window. Push the module into the bezel from underneath, then put a dab of hot glue at each end of its circuit board.
 - Thread the 4 wires through the deck slot, then glue the bezel down with a thin line of CA glue (or 0.2 mm double-sided tape) around its base.
 - Remove any header pins and solder the 4 wires straight to the pads from the back of the module.
@@ -82,7 +86,7 @@ Left half is everything left of the `||`. The Fn key is the last key in the left
 
 - The seam is a staircase that follows key-cell edges, so no switch is cut. Gap is {G.SEAM_GAP} mm.
 - {NMAG} magnet pockets per half (5 x 1 mm N52 discs, pockets 5.2 mm wide, 1.1 mm deep), including one in the back bay. They face each other across the seam.
-- A V-shaped tongue on the right half slides into a matching groove on the left half, about 6 to 7 mm above the desk. It stops the halves stepping up or down against each other. Its 45° flanks print cleanly without supports.
+- A V-shaped tongue on the right half slides into a matching groove on the left half, about 6 to 7 mm above the desk. It stops the halves stepping up or down against each other. Its 45° flanks print cleanly without supports. Both stop {G.TG_END_GROOVE:.1f} to {G.TG_END_TONGUE:.1f} mm inside the outer wall, so from outside you only see the hairline.
 - The {G.EDGE_R} mm rounded edge runs straight across the seam and both seam faces are flat, so joined, the halves read as one piece with just a hairline between them.
 - To join: line the halves up side by side, then push them together horizontally.
 - **Magnet polarity:** glue the magnets so each pair attracts. Stack them on the bench first and mark the faces with a pen before gluing.
@@ -184,7 +188,7 @@ How the shapes help:
 
 - **Rounded edges** ({G.EDGE_R} mm top, {G.EDGE_RB} mm bottom) are "teardrop" rounds: a true circle, but never steeper than 45° next to the face that sits on the bed, so they print face-down without drooping. They are modelled as true curves (one ring every 3° of arc, real curved faces in the STEP files), so the only steps left are your printer's layers: 0.2 mm is fine, 0.12 mm or 0.1 mm is smoother.
 - **Magnet pockets and the reset hole** are teardrop-shaped holes, so their tops (which face down in the printer) never overhang more than 45°.
-- **Tongue and groove** have 45° V flanks. The USB-C and power slots are short flat bridges (under 12 mm).
+- **Tongue and groove** have 45° V flanks. The USB-C opening has rounded upper corners and 45° chamfered lower corners (the lower ones face down while printing). The USB-C and power slots are short flat bridges (under 12 mm).
 - `verify.py` scans every print-ready part for faces that would need support: at most 0.4 mm² of steep surface per part (rounding noise), widest flat bridge 8.2 mm (the foot recesses).
 
 Settings: PLA or PETG, 0.2 mm layers, 3 to 4 walls, 15 to 20 % infill, a smooth PEI or glass bed for a glossy top. About {PRINT_G:.0f} g of filament for everything. For an even smoother look, lightly sand the rounded edges with 400 then 800 grit.

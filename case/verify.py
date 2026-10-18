@@ -78,6 +78,18 @@ for s_, h, sh in (("L", hL, shL), ("R", hR, shR)):
     y, z = P["sn"](sc, -2.6); check(f"{s_} deck slot open under the module", not sh.contains(np.array([[o["cx"], y, G.H_TOTAL - 0.6]]))[0])
     for (px, py) in G.bezel_pegs(h):
         check(f"{s_} peg hole open and peg present", (not sh.contains(np.array([[px, py, G.H_TOTAL - 0.6]]))[0]) and bz.contains(np.array([[px, py, G.H_TOTAL - 0.5]]))[0])
+    # the bezel's outer wall is closed all the way round near the deck (the pocket must not break out of the back)
+    from shapely.geometry import Polygon as _SP
+    closed = True
+    for zz in np.arange(G.H_TOTAL + 0.02, P["z_f"] - 0.02, 0.1):          # below the tilted top face
+        sec = bz.section(plane_origin=[0, 0, zz], plane_normal=[0, 0, 1])
+        if sec is None: continue
+        for poly in sec.to_2D()[0].polygons_full:
+            outer = _SP(poly.exterior)
+            if outer.convex_hull.area - outer.area > 0.05: closed = False
+    check(f"{s_} bezel wall closed all round near the deck (no slit at the back)", closed)
+    fp = G.bezel_footprint(h); y_flat = h["bounds"][3] - G.soft(0.0, G.EDGE_R)
+    check(f"{s_} bezel footprint stays on the flat deck (back foot {fp.bounds[3]:.2f} < {y_flat:.2f} mm)", fp.bounds[3] < y_flat - 0.5)
     ob = h["bounds"]; xm = (ob[0] + ob[2]) / 2
     check(f"{s_} top edge rounded ({G.EDGE_R} mm)", not sh.contains(np.array([[xm, ob[1] + 0.5, G.H_TOTAL - 0.1]]))[0]
           and sh.contains(np.array([[xm, ob[1] + 1.8, G.H_TOTAL - 0.1]]))[0])
@@ -98,6 +110,11 @@ for dz in (0.05, 1.0, 2.0):
 xs, y = G._global()["xcut"][1], -19.05 + 6.0
 check("tongue present on right shell", shR.contains(np.array([[xs - 0.4 - hR["ox"], y, 6.7]]))[0])
 check("groove present in left shell", not shL.contains(np.array([[xs - 0.4, y, 6.7]]))[0])
+# the groove and tongue stop inside the case: at the front and back faces the seam is only a hairline
+for yy, nm_ in ((hL["bounds"][1] + 0.6, "front"), (hL["bounds"][3] - 0.6, "back")):
+    xcut = G._global()["xcut"][0 if nm_ == "back" else G.NROWS - 1]
+    check(f"seam is a clean hairline at the {nm_} face (groove does not break through)",
+          bool(shL.contains(np.array([[xcut - G.SEAM_GAP - 0.3, yy, G.TG_ZC]]))[0]))
 # 7. printability: every part as it sits in out/stl/print_ready
 import printcheck
 for name, ok, msg in printcheck.run():

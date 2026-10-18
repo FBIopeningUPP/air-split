@@ -27,6 +27,7 @@ MAG_POCKET_R, MAG_POCKET_DEPTH = 2.6, 1.1
 # V-shaped tongue and groove (45 degree flanks, so both print without supports). Half-width = apex - |z - centre|.
 TONGUE_APEX, GROOVE_APEX, TG_ZC = 0.6, 0.85, 6.7
 TONGUE_HW, GROOVE_HW = TONGUE_APEX, GROOVE_APEX
+TG_END_GROOVE, TG_END_TONGUE = 1.6, 2.0   # both stop short of the outer skin, so outside only the 0.2 mm hairline shows
 def tg_slices(apex, dz=0.1):
     out, z = [], TG_ZC - apex
     while z < TG_ZC + apex - 1e-9:
@@ -75,6 +76,13 @@ OLED_TILT, POD_LIFT, POD_WALL, POD_REAR = 15.0, 1.0, 1.6, 1.2   # degrees; bezel
 # The pod is a separate small bezel (prints window-face-down, no supports). It sits flat on the deck on two 1.1 mm pegs,
 # over a slot that lets the module's lower half drop below the deck.
 BEZEL_R, BEZEL_END_R = 0.6, 0.8
+# The bezel's outside is one tapered pod: sloped ends and a sloped back that run down onto the deck, rounded corners.
+# It prints window-face-down, so every outer face must stay at least 45 degrees from that face. With the 15 degree tilt
+# that allows end ramps down to 46 degrees and a back slope down to 30 degrees.
+BEZEL_END_RUN = 0.9      # end ramps: 0.9 mm out per mm of height (48 degrees)
+BEZEL_TOP_R   = 2.0      # plan-view corner radius of the top face
+BEZEL_BASE_R  = 2.5      # corner radius of the footprint on the deck
+BEZEL_BACK_MIN_DEG = 32.0
 PEG_R, PEG_HOLE_R, PEG_L = 0.55, 0.7, 1.0
 EDGE_R  = 2.5         # rounded top edge (outer perimeter; it runs straight across the seam, so the joined board reads as one piece)
 EDGE_RB = 0.8         # rounded bottom edge
@@ -298,6 +306,7 @@ def half(side):
 # ('add'|'sub', 'cyl', (x, y, r), z0, z1)
 # ('add'|'sub', 'box', (x0, y0, x1, y1), z0, z1)
 # ('add', 'skin', dict(b, r, prof), z0, z1)    lofted rounded-rectangle solid; ('int', ...) intersects
+# ('add', 'hull', [(x, y, z), ...], z0, z1)  convex hull of the points
 def shell_ops(h):
     z_plate0 = H_TOTAL - PLATE_T
     ops = []
@@ -325,16 +334,18 @@ def shell_ops(h):
         ops.append(("sub", "prismX", teardrop(m["y"], MAG_Z, MAG_POCKET_R, 1.4), x0, x1))
     seamL, O = h["seam"], h["outer"]
     if h["side"] == "R":
+        Oi = O.buffer(-TG_END_TONGUE, join_style=1)
         for z0, z1, hw in tg_slices(TONGUE_APEX):
-            ops.append(("add", "poly", seamL.buffer(hw, cap_style=2, join_style=2).intersection(O), z0, z1))
+            ops.append(("add", "poly", seamL.buffer(hw, cap_style=2, join_style=2).intersection(Oi), z0, z1))
     else:
+        Oi = O.buffer(-TG_END_GROOVE, join_style=1)
         for z0, z1, hw in tg_slices(GROOVE_APEX):
-            ops.append(("sub", "poly", seamL.buffer(hw, cap_style=2, join_style=2).intersection(O), z0, z1))
+            ops.append(("sub", "poly", seamL.buffer(hw, cap_style=2, join_style=2).intersection(Oi), z0, z1))
     for o in h["openings"]:
         if o.get("side_wall"):
             ob = h["bounds"]
             xa, xb = ((ob[0] - 0.5, ob[0] + WALL + 0.6) if h["side"] == "L" else (ob[2] - WALL - 0.6, ob[2] + 0.5))
-            ops.append(("sub", "box", (xa, o["y"] - o["w"]/2, xb, o["y"] + o["w"]/2), o["zc"] - o["h"]/2, o["zc"] + o["h"]/2))
+            ops.append(("sub", "prismX", usb_slot_profile(o), xa, xb))
         elif o["kind"] == "power":
             ops.append(("sub", "box", (o["x"] - o["w"]/2, y_out - WALL - 0.5, o["x"] + o["w"]/2, y_out + 0.5),
                         o["zc"] - o["h"]/2, o["zc"] + o["h"]/2))
@@ -348,6 +359,19 @@ def shell_ops(h):
             ops.append(("sub", "box", (o["x"] - o["w"]/2, y_out - WALL - 0.5, o["x"] + o["w"]/2, y_out + 0.5),
                         o["zc"] - o["h"]/2, o["zc"] + o["h"]/2))
     return ops
+
+USB_TOP_R, USB_BOT_C = 2.0, 1.5
+def usb_slot_profile(o, n=10):
+    """(y, z) outline of the USB-C opening: upper corners rounded, lower corners 45 degree chamfers (they face down
+    while the shell prints upside down, so they must not be round)."""
+    y0, y1 = o["y"] - o["w"] / 2, o["y"] + o["w"] / 2
+    z0, z1 = o["zc"] - o["h"] / 2, o["zc"] + o["h"] / 2
+    r, c = USB_TOP_R, USB_BOT_C
+    pts = [(y0 + c, z0), (y1 - c, z0), (y1, z0 + c)]
+    pts += [(y1 - r + r * math.cos(a), z1 - r + r * math.sin(a)) for a in np.linspace(0, math.pi / 2, n)]
+    pts += [(y0 + r + r * math.cos(a), z1 - r + r * math.sin(a)) for a in np.linspace(math.pi / 2, math.pi, n)]
+    pts += [(y0, z0 + c)]
+    return pts
 
 def teardrop(c, zc, r, flat, n=40):
     """Outline of a horizontal round hole as a teardrop: the circle, plus 45 degree flanks below it, cut off flat
@@ -364,40 +388,48 @@ def bezel_pegs(h):
     x0, y0, x1, y1 = bezel_box(h)
     return [(x0 + 0.75, (y0 + y1) / 2), (x1 - 0.75, (y0 + y1) / 2)]
 
-def bezel_ops(h):
-    """The OLED bezel, in its assembled position. A wedge whose top is tilted toward you, with a 0.4 mm lip over the
-    glass, a glass pocket and a PCB pocket open to the bottom (the module drops in from below). Every top edge rounded."""
+def bezel_hull_points(h, n=12):
+    """Outer shape of the OLED bezel as a point cloud whose convex hull is the pod: the rounded top face in the tilted
+    plane, and the rounded footprint on the deck (wider than the top: the ends and the back slope down to it)."""
     from shapely.geometry import Polygon as SP
-    o, P = h["comp"]["oled"], h["oled_pose"]; sn = P["sn"]; th = P["theta"]
+    P = h["oled_pose"]; sn = P["sn"]
     x0, y0, x1, y1 = bezel_box(h)
     zb = H_TOTAL
-    def profile(e):                                     # (y, z) section with the top face lowered by e
-        far = 40.0
-        wedge = SP([(y0, zb), (y1, zb), (y1, P["z_b"] + 5), (y0, P["z_f"] + 5)])
-        a, b = sn(-far, -e), sn(far, -e)
-        below = SP([a, b, (b[0], zb - 60), (a[0], zb - 60)])
-        p = wedge.intersection(below)
-        # top corners: 50 degree chamfers (they touch the bed when printing, so no round that would droop)
-        t = np.array([math.cos(th), math.sin(th)]); nv = np.array([-math.sin(th), math.cos(th)])
-        def top_at(y):                                   # point on the (lowered) top line at this y
-            s = (y - y0) / math.cos(th)
-            return np.array(sn(s, -e))
-        for corner, dirn, c in ((top_at(y0), 1, 0.35), (top_at(y1), -1, 0.8)):
-            A = corner + dirn * c * t
-            u = math.cos(math.radians(50)) * (-dirn * t) + math.sin(math.radians(50)) * (-nv)
-            w = np.array([-u[1], u[0]])
-            if np.dot(corner - A, w) < 0: w = -w
-            cut = SP([tuple(A - 50 * u), tuple(A + 50 * u), tuple(A + 50 * u + 50 * w), tuple(A - 50 * u + 50 * w)])
-            p = p.difference(cut)
-        p = p.union(box(y0, zb, y1, zb + 0.2)).intersection(box(y0, zb, y1, 99))
-        return [tuple(c) for c in p.exterior.coords[:-1]]
-    ops = [("add", "prismX", profile(0.0), x0 + BEZEL_END_R, x1 - BEZEL_END_R)]
-    k = 10
-    for i in range(k):                                  # rounded ends, teardrop (they face the bed when printing)
-        t0, t1 = BEZEL_END_R * i / k, BEZEL_END_R * (i + 1) / k
-        e = soft((t0 + t1) / 2, BEZEL_END_R)
-        ops.append(("add", "prismX", profile(e), x0 + t0, x0 + t1))
-        ops.append(("add", "prismX", profile(e), x1 - t1, x1 - t0))
+    pts = []
+    top = SP([(x0, 0.0), (x1, 0.0), (x1, P["Ls"]), (x0, P["Ls"])])           # (x, s) on the top face
+    top = top.buffer(-BEZEL_TOP_R, join_style=2).buffer(BEZEL_TOP_R, resolution=n)
+    for x, s_ in top.exterior.coords[:-1]:
+        y, z = sn(s_, 0.0)
+        pts.append((x, y, z))
+    hf, hb = P["z_f"] - zb, P["z_b"] - zb                                   # height above the deck, front and back
+    y_rb = bezel_back_foot(h)
+    foot = SP([(x0 - BEZEL_END_RUN * hf, y0), (x1 + BEZEL_END_RUN * hf, y0), (x1 + BEZEL_END_RUN * hb, y1),
+               (x1, y_rb), (x0, y_rb), (x0 - BEZEL_END_RUN * hb, y1)])
+    foot = foot.buffer(-BEZEL_BASE_R, join_style=2).buffer(BEZEL_BASE_R, resolution=n)
+    for x, y in foot.exterior.coords[:-1]:
+        pts.append((x, y, zb))
+    return pts
+
+def bezel_back_foot(h):
+    """Where the bezel's back slope meets the deck: as far back as the flat deck allows, before the rounded edge."""
+    P = h["oled_pose"]
+    y_flat = h["bounds"][3] - soft(0.0, EDGE_R)
+    y_rb = min(P["y_b"] + (P["z_b"] - H_TOTAL) / math.tan(math.radians(40.0)), y_flat - 0.8)
+    back_deg = math.degrees(math.atan2(P["z_b"] - H_TOTAL, y_rb - P["y_b"]))
+    assert back_deg >= BEZEL_BACK_MIN_DEG, f"bezel back slope {back_deg:.1f} deg is too shallow to print face-down"
+    return y_rb
+
+def bezel_footprint(h):
+    """The bezel's outline on the deck (for drawings and checks)."""
+    from shapely.geometry import MultiPoint
+    return MultiPoint([(x, y) for x, y, z in bezel_hull_points(h) if abs(z - H_TOTAL) < 1e-9]).convex_hull
+
+def bezel_ops(h):
+    """The OLED bezel, in its assembled position. A tapered pod whose top is tilted toward you, with a 0.4 mm lip over
+    the glass, a glass pocket and a PCB pocket open to the bottom (the module drops in from below)."""
+    o, P = h["comp"]["oled"], h["oled_pose"]; sn = P["sn"]
+    zb = H_TOTAL
+    ops = [("add", "hull", bezel_hull_points(h), zb, P["z_b"])]
     for (px, py) in bezel_pegs(h):
         ops.append(("add", "cyl", (px, py, PEG_R), zb - PEG_L, zb + 0.01))
     def slab(s0, s1, n0, n1):
